@@ -17,6 +17,12 @@
 // on peut ici définir une structure stockant tout ce dont le worker
 // a besoin : le nombre premier dont il a la charge, ...
 
+// Liste :
+// - Tube anonyme précédent -> self
+// - Tube anonyme self -> suivant
+// - Tube anonyme self -> master
+// - Nombre cible (N)
+// - Nombre premier dont il a la charge (P)
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -33,13 +39,18 @@ static void usage(const char *exeName, const char *message)
     exit(EXIT_FAILURE);
 }
 
-static void parseArgs(int argc, char * argv[] /*, structure à remplir*/)
+static void parseArgs(int argc, char *argv[] /*, structure à remplir*/)
 {
     if (argc != 4)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
 }
+/************************************************************************
+ * Fonctions secondaires
+ ************************************************************************/
+
+// check nombre premier
 
 /************************************************************************
  * Boucle principale de traitement
@@ -63,14 +74,14 @@ void loop(/* paramètres */)
  * Programme principal
  ************************************************************************/
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
     parseArgs(argc, argv /*, structure à remplir*/);
-    
+
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
-
+    //      -> check nombre premier
     loop(/* paramètres */);
 
     // libérer les ressources : fermeture des files descriptors par exemple
