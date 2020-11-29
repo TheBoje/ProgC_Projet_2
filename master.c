@@ -90,10 +90,31 @@ master_data init_master_structure()
 
     return md;
 }
-// Envoie d'accusé de reception - ORDER_STOP
+
+// Envoie d'accusé de reception - ORDER_STOP TODO
+void stop()
+{
+    // -> Lancer l'odre de fin pour les worker
+    // -> attendre la fin des workers
+    // -> envoyer le signal de fin au client
+
+    printf("Fin des workers\n");
+    printf("Fin du master\n");
+}
+
 // Compute prime - ORDER_COMPUTE_PRIME (N)
+
 // How many prime - ORDER_HOW_MANY_PRIME
+int get_primes_numbers_calculated(master_data md)
+{
+    return md.primes_number_calculated;
+}
+
 // Return ORDER_HIGHEST_PRIME
+int get_highest_prime(master_data md)
+{
+    return md.highest_prime;
+}
 
 
 /************************************************************************
