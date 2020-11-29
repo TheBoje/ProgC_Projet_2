@@ -37,6 +37,8 @@ typedef struct master_data
     int named_pipe_input;
     int unnamed_pipe_output_worker[2];
     int unnamed_pipe_input_worker[2];
+    int primes_number_calculated;
+    int highest_prime;
 } master_data;
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -54,10 +56,18 @@ static void usage(const char *exeName, const char *message)
  * Fonctions secondaires
  ************************************************************************/
 
+// Initialise la structure de donnée
+master_data init_master_structure()
+{
+    master_data md;
+
+    
+}
 // Envoie d'accusé de reception - ORDER_STOP
 // Compute prime - ORDER_COMPUTE_PRIME (N)
 // How many prime - ORDER_HOW_MANY_PRIME
 // Return ORDER_HIGHEST_PRIME
+
 
 /************************************************************************
  * boucle principale de communication avec le client
