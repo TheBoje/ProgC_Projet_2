@@ -85,7 +85,11 @@ static int parseArgs(int argc, char *argv[], int *number)
  * Fonctions secondaires
  ************************************************************************/
 
-bool compute_prime_local(int input);
+bool compute_prime_local(int input)
+{
+    fprintf(stdout, "Computing prime local of number [%d]\n", input);
+    return false;
+}
 
 /************************************************************************
  * Fonction principale
@@ -97,21 +101,21 @@ int main(int argc, char *argv[])
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
 
-    // ==========================================================
-    // == order peut valoir 5 valeurs (cf. master_client.h) :  ==
-    // ==      - ORDER_COMPUTE_PRIME_LOCAL                     ==
-    // ==      - ORDER_STOP                                    ==
-    // ==      - ORDER_COMPUTE_PRIME                           ==
-    // ==      - ORDER_HOW_MANY_PRIME                          ==
-    // ==      - ORDER_HIGHEST_PRIME                           ==
-    // ==========================================================
+    /* =======================================================
+    == order peut valoir 5 valeurs (cf. master_client.h) :  ==
+    ==      - ORDER_COMPUTE_PRIME_LOCAL                     ==
+    ==      - ORDER_STOP                                    ==
+    ==      - ORDER_COMPUTE_PRIME                           ==
+    ==      - ORDER_HOW_MANY_PRIME                          ==
+    ==      - ORDER_HIGHEST_PRIME                           ==
+    ======================================================= */
 
     // si c'est ORDER_COMPUTE_PRIME_LOCAL
     //    alors c'est un code complètement à part multi-thread
     if (order == ORDER_COMPUTE_PRIME_LOCAL)
     {
         bool res = compute_prime_local(number);
-        printf("Number : %d, result : %b", number, res);
+        printf("Number : [%d] | result : [%s]\n", number, res ? "true" : "false");
     }
     else
     {
@@ -124,14 +128,15 @@ int main(int argc, char *argv[])
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
         //    . TODO les ouvertures sont bloquantes, il faut s'assurer que
         //      le master ouvre les tubes dans le même ordre
-        int fd[2] = {open(PIPE_CLIENT_OUTPUT, O_WRONLY), open(PIPE_CLIENT_INPUT, O_RDONLY)};
-        open_pipe(fd, SIDE_CLIENT);
+        int *fd;
+        fd = open_pipe(SIDE_CLIENT);
 
         //  - envoyer l'ordre et les données éventuelles au master
         int res_write = write(fd[1], &order, sizeof(int));
-        if (res_write == -1)
+        if (res_write == RET_ERROR)
         {
-            fprintf(stderr, "Error write order to master");
+            fprintf(stderr, "Error write order to master\n");
+            exit(EXIT_FAILURE);
         }
         // Dans le cas ou on demande de calculer si le nombre est premier
         // On envoie dans un second temps le nombre premier à vérifier
@@ -144,7 +149,7 @@ int main(int argc, char *argv[])
         //      -> lire dans le pipe
         int result_read;
         read(fd[0], &result_read, sizeof(int));
-        printf("Order : %d, Result : %d", order, result_read);
+        printf("Order : [%d] | Result : [%d]\n", order, result_read);
 
         //      -> prendre second mutex
         int sem_master_client_id = semget(ID_MASTER_CLIENT, 0, 0);

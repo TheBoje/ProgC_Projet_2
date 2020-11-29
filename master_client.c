@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sys/sem.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "myassert.h"
 
@@ -18,9 +19,10 @@ void take_mutex(int sem_id)
 {
     struct sembuf p = {0, -1, 0};
     int res = semop(sem_id, &p, 1);
-    if (res == -1)
+    if (res == RET_ERROR)
     {
-        fprintf(stderr, "Error take mutex");
+        fprintf(stderr, "Error take mutex\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -29,41 +31,51 @@ void sell_mutex(int sem_id)
 {
     struct sembuf v = {0, 1, 0};
     int res = semop(sem_id, &v, 1);
-    if (res == -1)
+    if (res == RET_ERROR)
     {
-        fprintf(stderr, "Error sell mutex");
+        fprintf(stderr, "Error sell mutex\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 // ouvrir les tubes nommés
-void open_pipe(int *fd, int side)
+int *open_pipe(int side)
 {
-    assert(side != SIDE_MASTER || side != SIDE_CLIENT);
-    int results[2];
+    myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "Wrong side input");
+    int *res = malloc(sizeof(int) * 2);
     if (side == SIDE_MASTER)
     {
-        results[0] = open(fd[0], O_WRONLY);
-        results[1] = open(fd[1], O_RDONLY);
+        res[0] = open(PIPE_MASTER_INPUT, O_RDONLY);
+        res[1] = open(PIPE_MASTER_OUTPUT, O_WRONLY);
     }
     else if (side == SIDE_CLIENT)
     {
-        results[0] = open(fd[0], O_WRONLY);
-        results[1] = open(fd[1], O_RDONLY);
+        res[0] = open(PIPE_CLIENT_INPUT, O_RDONLY);
+        res[1] = open(PIPE_CLIENT_OUTPUT, O_WRONLY);
     }
 
-    if (results[0] == -1 || results[1] == -1)
+    if (res[0] == RET_ERROR || res[1] == RET_ERROR)
     {
-        fprintf(stderr, "Error open pipes");
+        fprintf(stderr, "Error open pipes\n");
+        exit(EXIT_FAILURE);
     }
+    return res;
 }
 
 // fermer les tubes nommés
 void close_pipe(int *fd)
 {
-    int res = close(fd);
-    if (res == -1)
+    int res = close(fd[0]);
+    if (res == RET_ERROR)
     {
-        fprintf(stderr, "Error close pipes");
+        fprintf(stderr, "Error close pipes\n");
+        exit(EXIT_FAILURE);
+    }
+    res = close(fd[1]);
+    if (res == RET_ERROR)
+    {
+        fprintf(stderr, "Error close pipes\n");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -71,8 +83,9 @@ void close_pipe(int *fd)
 void destroy_pipe(char *pipe_name)
 {
     int res = unlink(pipe_name);
-    if (res == -1)
+    if (res == RET_ERROR)
     {
-        fprintf(stderr, "Error destroy pipe");
+        fprintf(stderr, "Error destroy pipe\n");
+        exit(EXIT_FAILURE);
     }
 }

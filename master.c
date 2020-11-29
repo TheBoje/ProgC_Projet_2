@@ -13,7 +13,7 @@
 #include <sys/sem.h>
 
 #include <sys/types.h>
-#include <sys/stat.h> 
+#include <sys/stat.h>
 
 #include "myassert.h"
 
@@ -69,12 +69,12 @@ static void usage(const char *exeName, const char *message)
  * Fonctions secondaires
  ************************************************************************/
 
-void init_sem(int * sem_client_id, int * sem_client_master_id)
+void init_sem(int *sem_client_id, int *sem_client_master_id)
 {
     int sem1 = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_CREAT | IPC_EXCL | 0641);
     int sem2 = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, IPC_CREAT | IPC_EXCL | 0641);
-    
-    if(sem1 == RET_ERROR || sem2 == RET_ERROR)
+
+    if (sem1 == RET_ERROR || sem2 == RET_ERROR)
     {
         TRACE("init_sem - semaphore doesn't created\n");
         exit(EXIT_FAILURE);
@@ -84,12 +84,12 @@ void init_sem(int * sem_client_id, int * sem_client_master_id)
     *sem_client_master_id = sem2;
 }
 
-void init_named_pipes(int * input_pipe_client, int * output_pipe_client)
+void init_named_pipes(int *input_pipe_client, int *output_pipe_client)
 {
     int ret1 = mkfifo(PIPE_MASTER_INPUT, 0641);
     int ret2 = mkfifo(PIPE_MASTER_OUTPUT, 0641);
 
-    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    if (ret1 == RET_ERROR || ret2 == RET_ERROR)
     {
         TRACE("init_pipes - named pipes doesn't created\n");
         exit(EXIT_FAILURE);
@@ -101,7 +101,7 @@ void init_workers_pipes(int unnamed_pipe_input[], int unnamed_pipe_output[])
     int ret1 = close(unnamed_pipe_input[WRITING]);
     int ret2 = close(unnamed_pipe_output[READING]);
 
-    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    if (ret1 == RET_ERROR || ret2 == RET_ERROR)
     {
         TRACE("init_workers_pipes - closing pipes failed");
         exit(EXIT_FAILURE);
@@ -116,10 +116,10 @@ master_data init_master_structure()
     // Initialise les sémaphores et les tubes nommés (voir master_client.c)
     init_sem(&(md.mutex_clients_id), &(md.mutex_client_master_id));
     init_named_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
-    
+
     // Initialise le tube anonyme pour la lecture des renvois des workers
     int ret = pipe(md.unnamed_pipe_output);
-    if(ret == RET_ERROR)
+    if (ret == RET_ERROR)
     {
         TRACE("init_master_structure - anonymous output pipe doesn't created");
         exit(EXIT_FAILURE);
@@ -127,7 +127,7 @@ master_data init_master_structure()
 
     // Initialise le tube anonyme pour l'écriture vers les workers
     ret = pipe(md.unnamed_pipe_inputs);
-    if(ret == RET_ERROR)
+    if (ret == RET_ERROR)
     {
         TRACE("init_master_structure - anonymous input pipe doesn't created")
     }
@@ -139,8 +139,6 @@ master_data init_master_structure()
 
     return md;
 }
-
-
 
 // Envoie d'accusé de reception - ORDER_STOP TODO
 void stop()
@@ -156,7 +154,7 @@ void stop()
 // Compute prime - ORDER_COMPUTE_PRIME (N)
 int compute_prime(int n)
 {
-    for(int i = 2; i < n; i++)
+    for (int i = 2; i < n; i++)
     {
         // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
         // -> on traite les sorties des workrs via le tube anonyme input
@@ -180,7 +178,6 @@ int get_highest_prime(master_data md)
 {
     return md.highest_prime;
 }
-
 
 /************************************************************************
  * boucle principale de communication avec le client

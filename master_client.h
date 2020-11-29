@@ -36,7 +36,7 @@ void take_mutex(int sem_id);
 void sell_mutex(int sem_id);
 
 // ouvrir les tubes nommés
-void open_pipe(int *fd, int side);
+int *open_pipe(int side);
 
 // fermer les tubes nommés
 void close_pipe(int *fd);

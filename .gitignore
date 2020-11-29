@@ -52,5 +52,8 @@ Mkfile.old
 dkms.conf
 .vscode/
 
-main
+master
+client
+worker
+*.d
 valgrind_out
