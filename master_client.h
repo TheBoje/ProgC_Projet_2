@@ -24,5 +24,8 @@
 // fermer les tubes nommés (dans master_client)
 // écriture sur le tube nommé (dans master_client)
 // lecture sur le tube nommé (dans master_client)
+// Initialisation sémaphores (dans master_client)
+// Initialisation des tubes nommés (dans master_client)
+// Destruction des tubes nommés (dans master_client)
 
 #endif

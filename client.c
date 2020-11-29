@@ -81,14 +81,6 @@ static int parseArgs(int argc, char *argv[], int *number)
  ************************************************************************/
 
 // compute_prime_local(int)
-// voir 3.3 local (bis)
-
-// prendre mutex (dans master_client)
-// vendre mutex (dans master_client)
-// ouvrir les tubes nommés (dans master_client)
-// fermer les tubes nommés (dans master_client)
-// écriture sur le tube nommé (dans master_client)
-// lecture sur le tube nommé (dans master_client)
 
 /************************************************************************
  * Fonction principale

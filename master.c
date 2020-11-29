@@ -30,9 +30,6 @@
 // - Tube anonyme lecture worker
 // - Tube anonyme écriture worker
 
-// Plus grand nombre
-// Nombre de calcul fait
-
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/
@@ -49,16 +46,10 @@ static void usage(const char *exeName, const char *message)
  * Fonctions secondaires
  ************************************************************************/
 
-// Initialisation sémaphores (dans master_client)
-// Initialisation des tubes nommés (dans master_client)
-// Initialisation des tubes anonymes (dans master_worker)
-// Création du premier worker (dans master_worker)
-
-// Ordre de fin du premier worker (dans master_worker)
 // Envoie d'accusé de reception - ORDER_STOP
 // Compute prime - ORDER_COMPUTE_PRIME (N)
 // How many prime - ORDER_HOW_MANY_PRIME
-// Destruction des tubes nommés (dans master_client)
+// Return ORDER_HIGHEST_PRIME
 
 /************************************************************************
  * boucle principale de communication avec le client

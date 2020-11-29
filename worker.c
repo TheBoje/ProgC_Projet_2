@@ -60,14 +60,20 @@ void loop(/* paramètres */)
 {
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
+    //      -> lecture sur le pipe (dans master_worker)
     //    si ordre d'arrêt
+    //      -> lecture sur le pipe (dans master_worker)
     //       si il y a un worker suivant, transmettre l'ordre et attendre sa fin
     //       sortir de la boucle
     //    sinon c'est un nombre à tester, 4 possibilités :
     //           - le nombre est premier
+    //              -> écriture sur le pipe (dans master_worker)
     //           - le nombre n'est pas premier
+    //              -> écriture sur le pipe (dans master_worker)
     //           - s'il y a un worker suivant lui transmettre le nombre
+    //              -> écriture sur le pipe worker worker (dans master_worker)
     //           - s'il n'y a pas de worker suivant, le créer
+    //              -> fork et changer les données
 }
 
 /************************************************************************
@@ -81,7 +87,6 @@ int main(int argc, char *argv[])
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
-    //      -> check nombre premier
     loop(/* paramètres */);
 
     // libérer les ressources : fermeture des files descriptors par exemple

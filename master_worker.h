@@ -5,5 +5,9 @@
 //    - des constantes pour rendre plus lisible les comunications
 //    - des fonctions communes (écriture dans un tube, ...)
 
+// SIGNATURES
+// Initialisation des tubes anonymes (dans master_worker)
+// Création du premier worker (dans master_worker)
+// Ordre de fin du premier worker (dans master_worker)
 
 #endif
