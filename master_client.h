@@ -29,23 +29,22 @@
 #define SIDE_MASTER 0
 #define SIDE_CLIENT 1
 
-// SIGNATURES
-// prendre mutex (dans master_client)
-int take_mutex(int sem_id);
+// prendre mutex
+void take_mutex(int sem_id);
 
-// vendre mutex (dans master_client)
-int sell_mutex(int sem_id);
+// vendre mutex
+void sell_mutex(int sem_id);
 
-// ouvrir les tubes nommés (dans master_client)
-int open_pipe(int *fd, int side);
+// ouvrir les tubes nommés
+void open_pipe(int *fd, int side);
 
-// fermer les tubes nommés (dans master_client)
-int close_pipe(int *fd);
+// fermer les tubes nommés
+void close_pipe(int *fd);
 
 // NON écriture sur le tube nommé (dans master_client)
 // NON lecture sur le tube nommé (dans master_client)
 
 // Destruction des tubes nommés (dans master_client)
-int destroy_pipes();
+void destroy_pipe(char *pipe_name);
 
 #endif
