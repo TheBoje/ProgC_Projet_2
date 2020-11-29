@@ -45,10 +45,6 @@ int close_pipe(int *fd);
 // NON écriture sur le tube nommé (dans master_client)
 // NON lecture sur le tube nommé (dans master_client)
 
-// Initialisation sémaphores (dans master_client)
-void init_sem(int *sem_client_id, int *sem_client_master_id);
-// Initialisation des tubes nommés (dans master_client)
-void init_pipes(int * fd_master_input, int * fd_master_output);
 // Destruction des tubes nommés (dans master_client)
 int destroy_pipes();
 

@@ -91,6 +91,11 @@ master_data init_master_structure()
     return md;
 }
 
+void set_pipes(master_data md);
+{
+    
+}
+
 // Envoie d'accusé de reception - ORDER_STOP TODO
 void stop()
 {
