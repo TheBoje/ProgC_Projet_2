@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 // uncomment to use verbose mode
-//#define VERBOSE
+#define VERBOSE
 
 #ifdef VERBOSE
     #define TRACE(x) fprintf(stderr, (x));

@@ -1,3 +1,5 @@
+#define HAVE_CONFIG_H
+
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -5,11 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "myassert.h"
 
 #include "master_client.h"
 #include "master_worker.h"
+
+#define INIT_MASTER_VALUE 0
 /************************************************************************
  * Idées
  ************************************************************************/
@@ -35,8 +40,8 @@ typedef struct master_data
     int mutex_client_master_id;
     int named_pipe_output;
     int named_pipe_input;
-    int unnamed_pipe_output_worker[2];
-    int unnamed_pipe_input_worker[2];
+    int unnamed_pipe_output[2];
+    int unnamed_pipe_inputs[2];
     int primes_number_calculated;
     int highest_prime;
 } master_data;
@@ -61,7 +66,29 @@ master_data init_master_structure()
 {
     master_data md;
 
+    // Initialise les sémaphores et les tubes nommés (voir master_client.c)
+    init_sem(&(md.mutex_clients_id), &(md.mutex_client_master_id));
+    init_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
     
+    // Initialise le tube anonyme pour la lecture des renvois des workers
+    int ret = pipe(md.unnamed_pipe_output);
+    if(ret == RET_ERROR)
+    {
+        TRACE("init_master_structure - anonymous output pipe doesn't created");
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialise le tube anonyme pour l'écriture vers les workers
+    ret = pipe(md.unnamed_pipe_inputs);
+    if(ret == RET_ERROR)
+    {
+        TRACE("init_master_structure - anonymous input pipe doesn't created")
+    }
+
+    md.primes_number_calculated = INIT_MASTER_VALUE;
+    md.highest_prime = INIT_MASTER_VALUE;
+
+    return md;
 }
 // Envoie d'accusé de reception - ORDER_STOP
 // Compute prime - ORDER_COMPUTE_PRIME (N)

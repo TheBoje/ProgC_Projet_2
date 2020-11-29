@@ -6,6 +6,8 @@
 //    - des fonctions communes (création tubes, écriture dans un tube,
 //      manipulation de sémaphores, ...)
 
+#define RET_ERROR -1
+
 // ordres possibles pour le master
 #define ORDER_NONE 0
 #define ORDER_STOP -1
@@ -44,7 +46,7 @@ int close_pipe(int *fd);
 // Initialisation sémaphores (dans master_client)
 void init_sem(int * sem_client_id, int * sem_client_master_id);
 // Initialisation des tubes nommés (dans master_client)
-int init_pipes();
+void init_pipes(int * fd_master_input, int * fd_master_output);
 // Destruction des tubes nommés (dans master_client)
 int destroy_pipes();
 
