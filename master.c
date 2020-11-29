@@ -9,12 +9,20 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#include <sys/ipc.h>
+#include <sys/sem.h>
+
+#include <sys/types.h>
+#include <sys/stat.h> 
+
 #include "myassert.h"
 
 #include "master_client.h"
 #include "master_worker.h"
 
 #define INIT_MASTER_VALUE 0
+#define WRITING 1
+#define READING 0
 /************************************************************************
  * Idées
  ************************************************************************/
@@ -61,6 +69,45 @@ static void usage(const char *exeName, const char *message)
  * Fonctions secondaires
  ************************************************************************/
 
+void init_sem(int * sem_client_id, int * sem_client_master_id)
+{
+    int sem1 = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_CREAT | IPC_EXCL | 0641);
+    int sem2 = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, IPC_CREAT | IPC_EXCL | 0641);
+    
+    if(sem1 == RET_ERROR || sem2 == RET_ERROR)
+    {
+        TRACE("init_sem - semaphore doesn't created\n");
+        exit(EXIT_FAILURE);
+    }
+
+    *sem_client_id = sem1;
+    *sem_client_master_id = sem2;
+}
+
+void init_named_pipes(int * input_pipe_client, int * output_pipe_client)
+{
+    int ret1 = mkfifo(PIPE_MASTER_INPUT, 0641);
+    int ret2 = mkfifo(PIPE_MASTER_OUTPUT, 0641);
+
+    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    {
+        TRACE("init_pipes - named pipes doesn't created\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void init_workers_pipes(int unnamed_pipe_input[], int unnamed_pipe_output[])
+{
+    int ret1 = close(unnamed_pipe_input[WRITING]);
+    int ret2 = close(unnamed_pipe_output[READING]);
+
+    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    {
+        TRACE("init_workers_pipes - closing pipes failed");
+        exit(EXIT_FAILURE);
+    }
+}
+
 // Initialise la structure de donnée
 master_data init_master_structure()
 {
@@ -68,7 +115,7 @@ master_data init_master_structure()
 
     // Initialise les sémaphores et les tubes nommés (voir master_client.c)
     init_sem(&(md.mutex_clients_id), &(md.mutex_client_master_id));
-    init_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
+    init_named_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
     
     // Initialise le tube anonyme pour la lecture des renvois des workers
     int ret = pipe(md.unnamed_pipe_output);
@@ -85,16 +132,15 @@ master_data init_master_structure()
         TRACE("init_master_structure - anonymous input pipe doesn't created")
     }
 
+    init_workers_pipes(&(md.unnamed_pipe_inputs), &(md.unnamed_pipe_output));
+
     md.primes_number_calculated = INIT_MASTER_VALUE;
     md.highest_prime = INIT_MASTER_VALUE;
 
     return md;
 }
 
-void set_pipes(master_data md);
-{
-    
-}
+
 
 // Envoie d'accusé de reception - ORDER_STOP TODO
 void stop()
