@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-        int sem_clients_id = semget(ID_CLIENTS, 0, 0);
+        int sem_clients_id = semget(ID_CLIENTS, 1, IPC_RMID);
         take_mutex(sem_clients_id);
         int fd[2] = {open(PIPE_CLIENT_OUTPUT, O_WRONLY), open(PIPE_CLIENT_INPUT, O_RDONLY)};
 
