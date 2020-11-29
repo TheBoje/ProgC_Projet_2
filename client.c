@@ -2,10 +2,15 @@
 #include "config.h"
 #endif
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/sem.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "myassert.h"
 
@@ -80,7 +85,7 @@ static int parseArgs(int argc, char *argv[], int *number)
  * Fonctions secondaires
  ************************************************************************/
 
-// compute_prime_local(int)
+bool compute_prime_local(int input);
 
 /************************************************************************
  * Fonction principale
@@ -123,6 +128,33 @@ int main(int argc, char *argv[])
     //
     // Une fois que le master a envoyé la réponse au client, il se bloque
     // sur un sémaphore ; le dernier point permet donc au master de continuer
+    if (order == ORDER_COMPUTE_PRIME_LOCAL)
+    {
+        bool res = compute_prime_local(number);
+        printf("Number : %d, result : %b", number, res);
+    }
+    else
+    {
+        int sem_clients_id = semget(ID_CLIENTS, 0, 0);
+        take_mutex(sem_clients_id);
+        int fd[2] = {open(PIPE_CLIENT_OUTPUT, O_WRONLY), open(PIPE_CLIENT_INPUT, O_RDONLY)};
+
+        open_pipe(fd, SIDE_CLIENT);
+        // TODO verif write success
+        write(fd[1], &order, sizeof(int));
+        if (order == ORDER_COMPUTE_PRIME)
+        {
+            write(fd[1], &number, sizeof(int));
+        }
+        int result_read;
+        read(fd[0], &result_read, sizeof(int));
+        printf("Order : %d, Result : %d", order, result_read);
+        int sem_master_client_id = semget(ID_MASTER_CLIENT, 0, 0);
+        take_mutex(sem_master_client_id);
+        sell_mutex(sem_clients_id);
+        close_pipe(fd);
+        sell_mutex(sem_master_client_id);
+    }
 
     return EXIT_SUCCESS;
 }
