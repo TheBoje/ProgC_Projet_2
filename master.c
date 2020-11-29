@@ -29,7 +29,15 @@
 // - Tube nommé écriture client
 // - Tube anonyme lecture worker
 // - Tube anonyme écriture worker
-
+typedef struct master_data
+{
+    int mutex_clients_id;
+    int mutex_client_master_id;
+    int named_pipe_output;
+    int named_pipe_input;
+    int unnamed_pipe_output_worker[2];
+    int unnamed_pipe_input_worker[2];
+} master_data;
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/

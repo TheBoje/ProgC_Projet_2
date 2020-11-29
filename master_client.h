@@ -17,15 +17,35 @@
 // bref n'hésitez à mettre nombre de fonctions avec des noms explicites
 // pour masquer l'implémentation
 
+#define FILE_KEY "master_client.h"
+#define ID_CLIENTS 1
+#define ID_MASTER_CLIENT 2
+#define PIPE_MASTER_INPUT "pipe_master_input"
+#define PIPE_MASTER_OUTPUT "pipe_master_output"
+#define PIPE_CLIENT_INPUT "pipe_master_output"
+#define PIPE_CLIENT_OUTPUT "pipe_master_input"
+
 // SIGNATURES
 // prendre mutex (dans master_client)
+int take_mutex(int sem_id);
+
 // vendre mutex (dans master_client)
+int sell_mutex(int sem_id);
+
 // ouvrir les tubes nommés (dans master_client)
+int open_pipe(int *fd, int side);
+
 // fermer les tubes nommés (dans master_client)
-// écriture sur le tube nommé (dans master_client)
-// lecture sur le tube nommé (dans master_client)
+int close_pipe(int *fd);
+
+// NON écriture sur le tube nommé (dans master_client)
+// NON lecture sur le tube nommé (dans master_client)
+
 // Initialisation sémaphores (dans master_client)
+int init_sem();
 // Initialisation des tubes nommés (dans master_client)
+int init_pipes();
 // Destruction des tubes nommés (dans master_client)
+int destroy_pipes();
 
 #endif
