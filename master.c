@@ -1,3 +1,5 @@
+#define HAVE_CONFIG_H
+
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -5,11 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "myassert.h"
 
 #include "master_client.h"
 #include "master_worker.h"
+
+#define INIT_MASTER_VALUE 0
 /************************************************************************
  * Idées
  ************************************************************************/
@@ -35,8 +40,8 @@ typedef struct master_data
     int mutex_client_master_id;
     int named_pipe_output;
     int named_pipe_input;
-    int unnamed_pipe_output_worker[2];
-    int unnamed_pipe_input_worker[2];
+    int unnamed_pipe_output[2];
+    int unnamed_pipe_inputs[2];
     int primes_number_calculated;
     int highest_prime;
 } master_data;
@@ -61,12 +66,69 @@ master_data init_master_structure()
 {
     master_data md;
 
+    // Initialise les sémaphores et les tubes nommés (voir master_client.c)
+    init_sem(&(md.mutex_clients_id), &(md.mutex_client_master_id));
+    init_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
     
+    // Initialise le tube anonyme pour la lecture des renvois des workers
+    int ret = pipe(md.unnamed_pipe_output);
+    if(ret == RET_ERROR)
+    {
+        TRACE("init_master_structure - anonymous output pipe doesn't created");
+        exit(EXIT_FAILURE);
+    }
+
+    // Initialise le tube anonyme pour l'écriture vers les workers
+    ret = pipe(md.unnamed_pipe_inputs);
+    if(ret == RET_ERROR)
+    {
+        TRACE("init_master_structure - anonymous input pipe doesn't created")
+    }
+
+    md.primes_number_calculated = INIT_MASTER_VALUE;
+    md.highest_prime = INIT_MASTER_VALUE;
+
+    return md;
 }
-// Envoie d'accusé de reception - ORDER_STOP
+
+// Envoie d'accusé de reception - ORDER_STOP TODO
+void stop()
+{
+    // -> Lancer l'odre de fin pour les worker
+    // -> attendre la fin des workers
+    // -> envoyer le signal de fin au client
+
+    printf("Fin des workers\n");
+    printf("Fin du master\n");
+}
+
 // Compute prime - ORDER_COMPUTE_PRIME (N)
+int compute_prime(int n)
+{
+    for(int i = 2; i < n; i++)
+    {
+        // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
+        // -> on traite les sorties des workrs via le tube anonyme input
+        printf("Envois du nombre %d", i);
+    }
+
+    // -> envois du nombre n
+    // -> on récupère la sortie des worker via le tube anonyme input
+    // -> n est premier - oui ou non
+    return EXIT_SUCCESS;
+}
+
 // How many prime - ORDER_HOW_MANY_PRIME
+int get_primes_numbers_calculated(master_data md)
+{
+    return md.primes_number_calculated;
+}
+
 // Return ORDER_HIGHEST_PRIME
+int get_highest_prime(master_data md)
+{
+    return md.highest_prime;
+}
 
 
 /************************************************************************
