@@ -103,6 +103,20 @@ void stop()
 }
 
 // Compute prime - ORDER_COMPUTE_PRIME (N)
+int compute_prime(int n)
+{
+    for(int i = 2; i < n; i++)
+    {
+        // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
+        // -> on traite les sorties des workrs via le tube anonyme input
+        printf("Envois du nombre %d", i);
+    }
+
+    // -> envois du nombre n
+    // -> on récupère la sortie des worker via le tube anonyme input
+    // -> n est premier - oui ou non
+    return EXIT_SUCCESS;
+}
 
 // How many prime - ORDER_HOW_MANY_PRIME
 int get_primes_numbers_calculated(master_data md)
