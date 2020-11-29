@@ -97,37 +97,17 @@ int main(int argc, char *argv[])
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
 
-    // order peut valoir 5 valeurs (cf. master_client.h) :
-    //      - ORDER_COMPUTE_PRIME_LOCAL
-    //      - ORDER_STOP
-    //      - ORDER_COMPUTE_PRIME
-    //      - ORDER_HOW_MANY_PRIME
-    //      - ORDER_HIGHEST_PRIME
-    //
+    // ==========================================================
+    // == order peut valoir 5 valeurs (cf. master_client.h) :  ==
+    // ==      - ORDER_COMPUTE_PRIME_LOCAL                     ==
+    // ==      - ORDER_STOP                                    ==
+    // ==      - ORDER_COMPUTE_PRIME                           ==
+    // ==      - ORDER_HOW_MANY_PRIME                          ==
+    // ==      - ORDER_HIGHEST_PRIME                           ==
+    // ==========================================================
+
     // si c'est ORDER_COMPUTE_PRIME_LOCAL
     //    alors c'est un code complètement à part multi-thread
-    //      -> lancer compute_prime_local(number)
-    // sinon
-    //    - entrer en section critique : (prendre le mutex dans master_client)
-    //           . pour empêcher que 2 clients communiquent simultanément
-    //           . le mutex est déjà créé par le master
-    //    - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
-    //           . les ouvertures sont bloquantes, il faut s'assurer que
-    //             le master ouvre les tubes dans le même ordre
-    //    - envoyer l'ordre et les données éventuelles au master
-    //          -> écriture dans le pipe, et lecture pour le master (dans master_client)
-    //    - attendre la réponse sur le second tube
-    //          -> lire dans le pipe (dans master_client)
-    //          -> prendre second mutex
-    //    - sortir de la section critique
-    //          -> vendre le mutex (dans master_client)
-    //    - libérer les ressources (fermeture des tubes, ...)
-    //          -> fermeture des tubes (dans master_client)
-    //    - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
-    //          -> vendre second mutex ORDER_STOP
-    //
-    // Une fois que le master a envoyé la réponse au client, il se bloque
-    // sur un sémaphore ; le dernier point permet donc au master de continuer
     if (order == ORDER_COMPUTE_PRIME_LOCAL)
     {
         bool res = compute_prime_local(number);
@@ -135,26 +115,53 @@ int main(int argc, char *argv[])
     }
     else
     {
+        //  - entrer en section critique : (prendre le mutex dans master_client)
+        //      . pour empêcher que 2 clients communiquent simultanément
+        //      . le mutex est déjà créé par le master
         int sem_clients_id = semget(ID_CLIENTS, 1, IPC_RMID);
         take_mutex(sem_clients_id);
-        int fd[2] = {open(PIPE_CLIENT_OUTPUT, O_WRONLY), open(PIPE_CLIENT_INPUT, O_RDONLY)};
 
+        //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
+        //    . TODO les ouvertures sont bloquantes, il faut s'assurer que
+        //      le master ouvre les tubes dans le même ordre
+        int fd[2] = {open(PIPE_CLIENT_OUTPUT, O_WRONLY), open(PIPE_CLIENT_INPUT, O_RDONLY)};
         open_pipe(fd, SIDE_CLIENT);
-        // TODO verif write success
-        write(fd[1], &order, sizeof(int));
+
+        //  - envoyer l'ordre et les données éventuelles au master
+        int res_write = write(fd[1], &order, sizeof(int));
+        if (res_write == -1)
+        {
+            fprintf(stderr, "Error write order to master");
+        }
+        // Dans le cas ou on demande de calculer si le nombre est premier
+        // On envoie dans un second temps le nombre premier à vérifier
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
         }
+
+        //  - attendre la réponse sur le second tube
+        //      -> lire dans le pipe
         int result_read;
         read(fd[0], &result_read, sizeof(int));
         printf("Order : %d, Result : %d", order, result_read);
+
+        //      -> prendre second mutex
         int sem_master_client_id = semget(ID_MASTER_CLIENT, 0, 0);
         take_mutex(sem_master_client_id);
-        sell_mutex(sem_clients_id);
-        close_pipe(fd);
-        sell_mutex(sem_master_client_id);
-    }
 
+        //  - sortir de la section critique
+        //      -> vendre le mutex
+        sell_mutex(sem_clients_id);
+        //  - libérer les ressources (fermeture des tubes, ...)
+        //      -> fermeture des tubes
+        close_pipe(fd);
+        //  - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
+        //      -> vendre second mutex ORDER_STOP
+        sell_mutex(sem_master_client_id);
+
+        // TODO Une fois que le master a envoyé la réponse au client, il se bloque
+        // sur un sémaphore ; le dernier point permet donc au master de continuer
+    }
     return EXIT_SUCCESS;
 }
