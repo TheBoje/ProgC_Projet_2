@@ -1,4 +1,4 @@
-#define HAVE_CONFIG_H
+//#define HAVE_CONFIG_H
 
 #if defined HAVE_CONFIG_H
 #include "config.h"
@@ -233,7 +233,7 @@ void loop(master_data *md)
         open_named_pipes_master(md);    
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
-        int ret = read(md->unnamed_pipe_inputs, &order, sizeof(int));
+        int ret = read(md->named_pipe_input, &order, sizeof(int));
         if(ret == RET_ERROR)
         {
             TRACE("loop - reading order failed");
@@ -264,7 +264,9 @@ void loop(master_data *md)
         //
         // il est important d'ouvrir et fermer les tubes nommés à chaque itération
         // voyez-vous pourquoi ?
-        // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même tempss
+        // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
+
+
         switch (order)
         {
         case ORDER_STOP :
@@ -273,6 +275,7 @@ void loop(master_data *md)
             break;
         
         case ORDER_COMPUTE_PRIME :
+        {
             int n;
             ret = read(md->named_pipe_input, &n, sizeof(int));
             if(ret == RET_ERROR)
@@ -282,17 +285,19 @@ void loop(master_data *md)
             }
             
             bool isPrime = compute_prime(n, md);
-            ret = write(md->unnamed_pipe_output, &isPrime, sizeof(bool));
+            ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
             if(ret == RET_ERROR)
             {
                 TRACE("loop - failed writing is prime\n");
                 exit(EXIT_FAILURE);
             }
             break;
-        
+        }
+            
         case ORDER_HOW_MANY_PRIME :
+        {
             int howManyCalc = get_primes_numbers_calculated(*md);
-            ret = write(md->unnamed_pipe_output, &howManyCalc, sizeof(int));
+            ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
             if(ret == RET_ERROR)
             {
                 TRACE("loop - failed writing how many prime\n");
@@ -300,15 +305,19 @@ void loop(master_data *md)
             }
             break;
         
+        }
+            
         case ORDER_HIGHEST_PRIME :
+        {
             int highest = get_highest_prime(*md);
-            ret = write(md->unnamed_pipe_output, &highest, sizeof(int));
+            ret = write(md->named_pipe_output, &highest, sizeof(int));
             if(ret == RET_ERROR)
             {
                 TRACE("loop - failed writing highest prime\n");
                 exit(EXIT_FAILURE);
             }
             break;
+        }
 
         default:
             TRACE("Order failure\n");
