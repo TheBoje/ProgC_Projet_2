@@ -234,7 +234,8 @@ int main(int argc, char *argv[])
         //      -> lire dans le pipe
 
         //      -> prendre second mutex
-        take_mutex(sem_master_client_id); //DEBUG LEFT HERE
+        take_mutex(sem_master_client_id);
+        //DEBUG LEFT HERE
 
         //  - sortir de la section critique
         //      -> vendre le mutex
