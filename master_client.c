@@ -39,31 +39,29 @@ void sell_mutex(int sem_id)
 }
 
 // ouvrir les tubes nommés
-int *open_pipe(int side)
+void open_pipe(int side, int res[])
 {
     myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "Wrong side input");
-    int *res = malloc(sizeof(int) * 2); // TODO FREE ME
     if (side == SIDE_MASTER)
     {
-        res[0] = open(PIPE_MASTER_INPUT, O_RDONLY);
-        res[1] = open(PIPE_MASTER_OUTPUT, O_WRONLY);
+        res[READING] = open(PIPE_MASTER_INPUT, O_RDONLY);
+        res[WRITING] = open(PIPE_MASTER_OUTPUT, O_WRONLY);
     }
     else if (side == SIDE_CLIENT)
     {
-        res[0] = open(PIPE_CLIENT_INPUT, O_RDONLY);
-        res[1] = open(PIPE_CLIENT_OUTPUT, O_WRONLY);
+        res[READING] = open(PIPE_CLIENT_INPUT, O_RDONLY);
+        res[WRITING] = open(PIPE_CLIENT_OUTPUT, O_WRONLY);
     }
     else
     {
         exit(EXIT_FAILURE);
     }
 
-    if (res[0] == RET_ERROR || res[1] == RET_ERROR)
+    if (res[READING] == RET_ERROR || res[WRITING] == RET_ERROR)
     {
         fprintf(stderr, "Error open pipes\n");
         exit(EXIT_FAILURE);
     }
-    return res;
 }
 
 // fermer les tubes nommés

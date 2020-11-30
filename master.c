@@ -21,8 +21,7 @@
 #include "master_worker.h"
 
 #define INIT_MASTER_VALUE 0
-#define WRITING 1
-#define READING 0
+
 /************************************************************************
  * Idées
  ************************************************************************/
@@ -131,7 +130,7 @@ master_data init_master_structure()
         TRACE("init_master_structure - anonymous input pipe doesn't created")
     }
 
-    init_workers_pipes(&(md.unnamed_pipe_inputs), &(md.unnamed_pipe_output));
+    init_workers_pipes(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
 
     md.primes_number_calculated = INIT_MASTER_VALUE;
     md.highest_prime = INIT_MASTER_VALUE;
@@ -215,9 +214,10 @@ void destroy_structure_pipes_sems(master_data * md)
 
 void open_named_pipes_master(master_data * md)
 {
-    int fdsNamed[2] = open_pipe(SIDE_MASTER);
-    *(md->unnamed_pipe_inputs) = fdsNamed[0];
-    *(md->unnamed_pipe_output) = fdsNamed[1];
+    int fdsNamed[2];
+    open_pipe(SIDE_MASTER, fdsNamed);
+    *(md->unnamed_pipe_inputs) = fdsNamed[READING];
+    *(md->unnamed_pipe_output) = fdsNamed[WRITING];
 }
 
 /************************************************************************
