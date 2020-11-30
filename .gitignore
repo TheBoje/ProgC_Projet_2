@@ -57,3 +57,5 @@ client
 worker
 *.d
 valgrind_out
+pipe_master_input
+pipe_master_output
