@@ -44,13 +44,13 @@ void open_pipe(int side, int res[])
     myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "Wrong side input");
     if (side == SIDE_MASTER)
     {
-        res[READING] = open(PIPE_MASTER_INPUT, O_RDONLY);
-        res[WRITING] = open(PIPE_MASTER_OUTPUT, O_WRONLY);
+        res[READING] = open(PIPE_MASTER_INPUT, O_RDONLY, "0660");
+        res[WRITING] = open(PIPE_MASTER_OUTPUT, O_WRONLY, "0660");
     }
     else if (side == SIDE_CLIENT)
     {
-        res[READING] = open(PIPE_CLIENT_INPUT, O_RDONLY);
-        res[WRITING] = open(PIPE_CLIENT_OUTPUT, O_WRONLY);
+        res[WRITING] = open(PIPE_CLIENT_OUTPUT, O_WRONLY, "0660");
+        res[READING] = open(PIPE_CLIENT_INPUT, O_RDONLY, "0660");
     }
     else
     {

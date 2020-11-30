@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
         //  - entrer en section critique : (prendre le mutex dans master_client)
         //      . pour empêcher que 2 clients communiquent simultanément
         //      . le mutex est déjà créé par le master
-        int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_RMID);
+        int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
         take_mutex(sem_clients_id);
 
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
@@ -212,7 +212,12 @@ int main(int argc, char *argv[])
         //  - attendre la réponse sur le second tube
         //      -> lire dans le pipe
         int result_read;
-        read(fd[READING], &result_read, sizeof(int));
+        int res = read(fd[READING], &result_read, sizeof(int));
+        if (res == RET_ERROR)
+        {
+            fprintf(stderr, "Error read order from master\n");
+            exit(EXIT_FAILURE);
+        }
         printf("Order : [%d] | Result : [%d]\n", order, result_read);
 
         //      -> prendre second mutex
