@@ -69,6 +69,7 @@ static void usage(const char *exeName, const char *message)
  * Fonctions secondaires
  ************************************************************************/
 
+// Création et initialisation des sémaphores
 void init_sem(int *sem_client_id, int *sem_client_master_id)
 {
     int sem1 = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_CREAT | IPC_EXCL | 0641);
