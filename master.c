@@ -190,8 +190,8 @@ void open_named_pipes_master(master_data * md)
 {
     int fdsNamed[2];
     open_pipe(SIDE_MASTER, fdsNamed);
-    *(md->unnamed_pipe_inputs) = fdsNamed[READING];
-    *(md->unnamed_pipe_output) = fdsNamed[WRITING];
+    md->named_pipe_input = fdsNamed[READING];
+    md->named_pipe_output = fdsNamed[WRITING];
 }
 
 /************************************************************************
