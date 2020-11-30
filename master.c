@@ -20,8 +20,7 @@
 #include "master_client.h"
 #include "master_worker.h"
 
-// Macro permettant de tester le retour de fonctions
-#define CHECK_RETURN(c, m) if(c){TRACE(m); exit(EXIT_FAILURE);}
+
 #define INIT_MASTER_VALUE 0
 
 /************************************************************************
@@ -74,8 +73,12 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
 {
     int sem1 = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_CREAT | IPC_EXCL | 0641);
     int sem2 = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, IPC_CREAT | IPC_EXCL | 0641);
-
     CHECK_RETURN(sem1 == RET_ERROR || sem2 == RET_ERROR, "init_sem - semaphore doesn't created\n");
+
+    int ret1 = semctl(sem1, 0, SETVAL, 1);
+    int ret2 = semctl(sem2, 0, SETVAL, 1);
+    
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_sem - semaphore doesn't initialize\n");
 
     *sem_client_id = sem1;
     *sem_client_master_id = sem2;
@@ -193,18 +196,7 @@ void open_named_pipes_master(master_data * md)
 /************************************************************************
  * boucle principale de communication avec le client
  ************************************************************************/
-void loop(master_data *md)
-{
-    bool cont = true; 
-    while(cont)
-    {
-        // boucle infinie :
-        // - ouverture des tubes (cf. rq client.c) (dans master_client)
-        open_named_pipes_master(md);    
-        // - attente d'un ordre du client (via le tube nommé) (dans master_client)
-        int order;
-        int ret = read(md->named_pipe_input, &order, sizeof(int));
-        CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
+
         // TODO Mettre sémaphore ici
         // - si ORDER_STOP
         //       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
@@ -233,55 +225,70 @@ void loop(master_data *md)
         // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
 
 
+void loop(master_data *md)
+{
+    bool cont = true; 
+    while(cont)
+    {
+        // boucle infinie :
+        // - ouverture des tubes (cf. rq client.c) (dans master_client)
+        open_named_pipes_master(md);    
+        // - attente d'un ordre du client (via le tube nommé) (dans master_client)
+        int order;
+        int ret = read(md->named_pipe_input, &order, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
+
         switch (order)
         {
-        case ORDER_STOP :
-            stop(md->named_pipe_output);
-            cont = false;
-            break;
-        
-        case ORDER_COMPUTE_PRIME :
-        {
-            int n;
-            ret = read(md->named_pipe_input, &n, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
+            case ORDER_STOP :
+                stop(md->named_pipe_output);
+                cont = false;
+                break;
             
-            bool isPrime = compute_prime(n, md);
-            ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+            case ORDER_COMPUTE_PRIME :
+            {
+                int n;
+                ret = read(md->named_pipe_input, &n, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
+                
+                bool isPrime = compute_prime(n, md);
+                ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
 
-            break;
-        }
-            
-        case ORDER_HOW_MANY_PRIME :
-        {
-            int howManyCalc = get_primes_numbers_calculated(*md);
-            ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+                break;
+            }
+                
+            case ORDER_HOW_MANY_PRIME :
+            {
+                int howManyCalc = get_primes_numbers_calculated(*md);
+                ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
-            break;
-        
-        }
+                break;
             
-        case ORDER_HIGHEST_PRIME :
-        {
-            int highest = get_highest_prime(*md);
-            ret = write(md->named_pipe_output, &highest, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
-            
-            break;
-        }
+            }
+                
+            case ORDER_HIGHEST_PRIME :
+            {
+                int highest = get_highest_prime(*md);
+                ret = write(md->named_pipe_output, &highest, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+                
+                break;
+            }
 
-        default:
-            TRACE("Order failure\n");
-            exit(EXIT_FAILURE);
-            break;
+            default:
+                TRACE("Order failure\n");
+                exit(EXIT_FAILURE);
+                break;
         }
 
         int ret1 = close(md->named_pipe_input);
         int ret2 = close(md->named_pipe_output);
 
         CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
+    
+        take_mutex(md->mutex_client_master_id);
     }  
 }
 
