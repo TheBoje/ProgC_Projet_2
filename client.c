@@ -192,11 +192,11 @@ int main(int argc, char *argv[])
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
         //    . TODO les ouvertures sont bloquantes, il faut s'assurer que
         //      le master ouvre les tubes dans le même ordre
-        int *fd;
-        fd = open_pipe(SIDE_CLIENT);
+        int fd[2];
+        open_pipe(SIDE_CLIENT, fd);
 
         //  - envoyer l'ordre et les données éventuelles au master
-        int res_write = write(fd[1], &order, sizeof(int));
+        int res_write = write(fd[WRITING], &order, sizeof(int));
         if (res_write == RET_ERROR)
         {
             fprintf(stderr, "Error write order to master\n");
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         //  - attendre la réponse sur le second tube
         //      -> lire dans le pipe
         int result_read;
-        read(fd[0], &result_read, sizeof(int));
+        read(fd[READING], &result_read, sizeof(int));
         printf("Order : [%d] | Result : [%d]\n", order, result_read);
 
         //      -> prendre second mutex
