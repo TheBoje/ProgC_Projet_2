@@ -84,7 +84,7 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
     *sem_client_master_id = sem2;
 }
 
-void init_named_pipes(int *input_pipe_client, int *output_pipe_client)
+void init_named_pipes()
 {
     int ret1 = mkfifo(PIPE_MASTER_INPUT, 0641);
     int ret2 = mkfifo(PIPE_MASTER_OUTPUT, 0641);
@@ -115,7 +115,6 @@ master_data init_master_structure()
 
     // Initialise les sémaphores et les tubes nommés (voir master_client.c)
     init_sem(&(md.mutex_clients_id), &(md.mutex_client_master_id));
-    init_named_pipes(&(md.named_pipe_input), &(md.named_pipe_output));
 
     // Initialise le tube anonyme pour la lecture des renvois des workers
     int ret = pipe(md.unnamed_pipe_output);
@@ -141,7 +140,7 @@ master_data init_master_structure()
 }
 
 // Envoie d'accusé de reception - ORDER_STOP TODO
-void stop()
+void stop(int output)
 {
     // -> Lancer l'odre de fin pour les worker
     // -> attendre la fin des workers
@@ -149,10 +148,16 @@ void stop()
 
     printf("Fin des workers\n");
     printf("Fin du master\n");
+    int ret = write(output, 0, sizeof(int));
+    if(ret == RET_ERROR)
+    {
+        TRACE("stop - write failed\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 // Compute prime - ORDER_COMPUTE_PRIME (N)
-int compute_prime(int n)
+bool compute_prime(int n, master_data * md)
 {
     for (int i = 2; i < n; i++)
     {
@@ -164,7 +169,7 @@ int compute_prime(int n)
     // -> envois du nombre n
     // -> on récupère la sortie des worker via le tube anonyme input
     // -> n est premier - oui ou non
-    return EXIT_SUCCESS;
+    return true;
 }
 
 // How many prime - ORDER_HOW_MANY_PRIME
@@ -179,39 +184,148 @@ int get_highest_prime(master_data md)
     return md.highest_prime;
 }
 
+
+void destroy_structure_pipes_sems(master_data * md)
+{
+    int ret1 = close(md->named_pipe_input);
+    int ret2 = close(md->named_pipe_output);
+
+    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    {
+        TRACE("destroy_structure_pipes_sems - failed closing named pipes\n");
+        exit(EXIT_FAILURE);
+    }
+
+    destroy_pipe(PIPE_MASTER_INPUT);
+    destroy_pipe(PIPE_MASTER_OUTPUT);
+
+    close_pipe(md->unnamed_pipe_inputs);
+    close_pipe(md->unnamed_pipe_output);
+
+
+    ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
+    ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
+
+    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+    {
+        TRACE("destroy_structure_pipes_sems - failed destroy mutex\n");
+        exit(EXIT_FAILURE);
+    }   
+}
+
+void open_named_pipes_master(master_data * md)
+{
+    int fdsNamed[2] = open_pipe(SIDE_MASTER);
+    *(md->unnamed_pipe_inputs) = fdsNamed[0];
+    *(md->unnamed_pipe_output) = fdsNamed[1];
+}
+
 /************************************************************************
  * boucle principale de communication avec le client
  ************************************************************************/
-void loop(/* paramètres */)
+void loop(master_data *md)
 {
-    // boucle infinie :
-    // - ouverture des tubes (cf. rq client.c) (dans master_client)
-    // - attente d'un ordre du client (via le tube nommé) (dans master_client)
-    // - si ORDER_STOP
-    //       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
-    //       . envoyer un accusé de réception au client
-    // - si ORDER_COMPUTE_PRIME
-    //       . récupérer le nombre N à tester provenant du client (dans master_client)
-    //       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-    //             il faut connaître le plus grand nombre (M) déjà enovoyé aux workers
-    //             on leur envoie tous les nombres entre M+1 et N-1 (SQRT(N) ?)
-    //             note : chaque envoie déclenche une réponse des workers
-    //       . envoyer N dans le pipeline
-    //       . récupérer la réponse
-    //       . la transmettre au client
-    // - si ORDER_HOW_MANY_PRIME
-    //       . transmettre la réponse au client
-    // - si ORDER_HIGHEST_PRIME
-    //       . transmettre la réponse au client
-    // - fermer les tubes nommés (dans master_client)
-    // - attendre ordre du client avant de continuer (sémaphore : précédence
-    //      -> lire pipe client (dans master_client)
-    //          --> sémaphore
-    // - revenir en début de boucle
-    //
-    // il est important d'ouvrir et fermer les tubes nommés à chaque itération
-    // voyez-vous pourquoi ?
-    // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même tempss
+    bool cont = true; 
+    while(cont)
+    {
+        // boucle infinie :
+        // - ouverture des tubes (cf. rq client.c) (dans master_client)
+        open_named_pipes_master(md);    
+        // - attente d'un ordre du client (via le tube nommé) (dans master_client)
+        int order;
+        int ret = read(md->unnamed_pipe_inputs, &order, sizeof(int));
+        if(ret == RET_ERROR)
+        {
+            TRACE("loop - reading order failed");
+            exit(EXIT_FAILURE);
+        }
+        // TODO Mettre sémaphore ici
+        // - si ORDER_STOP
+        //       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
+        //       . envoyer un accusé de réception au client
+        // - si ORDER_COMPUTE_PRIME
+        //       . récupérer le nombre N à tester provenant du client (dans master_client)
+        //       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
+        //             il faut connaître le plus grand nombre (M) déjà envoyé aux workers
+        //             on leur envoie tous les nombres entre M+1 et N-1 (SQRT(N) ?)
+        //             note : chaque envoie déclenche une réponse des workers
+        //       . envoyer N dans le pipeline
+        //       . récupérer la réponse
+        //       . la transmettre au client
+        // - si ORDER_HOW_MANY_PRIME
+        //       . transmettre la réponse au client
+        // - si ORDER_HIGHEST_PRIME
+        //       . transmettre la réponse au client
+        // - fermer les tubes nommés (dans master_client)
+        // - attendre ordre du client avant de continuer (sémaphore : précédence
+        //      -> lire pipe client (dans master_client)
+        //          --> sémaphore
+        // - revenir en début de boucle
+        //
+        // il est important d'ouvrir et fermer les tubes nommés à chaque itération
+        // voyez-vous pourquoi ?
+        // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même tempss
+        switch (order)
+        {
+        case ORDER_STOP :
+            stop(md->named_pipe_output);
+            cont = false;
+            break;
+        
+        case ORDER_COMPUTE_PRIME :
+            int n;
+            ret = read(md->named_pipe_input, &n, sizeof(int));
+            if(ret == RET_ERROR)
+            {
+                TRACE("loop - failed reading n\n");
+                exit(EXIT_FAILURE);
+            }
+            
+            bool isPrime = compute_prime(n, md);
+            ret = write(md->unnamed_pipe_output, &isPrime, sizeof(bool));
+            if(ret == RET_ERROR)
+            {
+                TRACE("loop - failed writing is prime\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        
+        case ORDER_HOW_MANY_PRIME :
+            int howManyCalc = get_primes_numbers_calculated(*md);
+            ret = write(md->unnamed_pipe_output, &howManyCalc, sizeof(int));
+            if(ret == RET_ERROR)
+            {
+                TRACE("loop - failed writing how many prime\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        
+        case ORDER_HIGHEST_PRIME :
+            int highest = get_highest_prime(*md);
+            ret = write(md->unnamed_pipe_output, &highest, sizeof(int));
+            if(ret == RET_ERROR)
+            {
+                TRACE("loop - failed writing highest prime\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+
+        default:
+            TRACE("Order failure\n");
+            exit(EXIT_FAILURE);
+            break;
+        }
+
+        int ret1 = close(md->named_pipe_input);
+        int ret2 = close(md->named_pipe_output);
+
+        if(ret1 == RET_ERROR || ret2 == RET_ERROR)
+        {
+            TRACE("destroy_structure_pipes_sems - failed closing named pipes\n");
+            exit(EXIT_FAILURE);
+        }
+    }  
+    
 }
 
 /************************************************************************
@@ -227,14 +341,16 @@ int main(int argc, char *argv[])
     //      -> init sémaphores
     // - création des tubes nommés
     //      -> init tubes nommés
+    init_named_pipes();
+    master_data md = init_master_structure();
     // - création du premier worker
-    //      -> init tubes anonymes
     //      -> init premier worker
 
     // boucle infinie
-    loop(/* paramètres */);
+    loop(&md);
 
     // destruction des tubes nommés, des sémaphores, ...
+    destroy_structure_pipes_sems(&md);
 
     return EXIT_SUCCESS;
 }
