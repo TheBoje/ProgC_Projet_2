@@ -20,6 +20,8 @@
 #include "master_client.h"
 #include "master_worker.h"
 
+// Macro permettant de tester le retour de fonctions
+#define CHECK_RETURN(c, m) if(c){TRACE(m); exit(EXIT_FAILURE);}
 #define INIT_MASTER_VALUE 0
 
 /************************************************************************
@@ -73,11 +75,7 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
     int sem1 = semget(ftok(FILE_KEY, ID_CLIENTS), 1, IPC_CREAT | IPC_EXCL | 0641);
     int sem2 = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, IPC_CREAT | IPC_EXCL | 0641);
 
-    if (sem1 == RET_ERROR || sem2 == RET_ERROR)
-    {
-        TRACE("init_sem - semaphore doesn't created\n");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(sem1 == RET_ERROR || sem2 == RET_ERROR, "init_sem - semaphore doesn't created\n");
 
     *sem_client_id = sem1;
     *sem_client_master_id = sem2;
@@ -88,11 +86,7 @@ void init_named_pipes()
     int ret1 = mkfifo(PIPE_MASTER_INPUT, 0641);
     int ret2 = mkfifo(PIPE_MASTER_OUTPUT, 0641);
 
-    if (ret1 == RET_ERROR || ret2 == RET_ERROR)
-    {
-        TRACE("init_pipes - named pipes doesn't created\n");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_pipes - named pipes doesn't created\n");
 }
 
 void init_workers_pipes(int unnamed_pipe_input[], int unnamed_pipe_output[])
@@ -100,11 +94,7 @@ void init_workers_pipes(int unnamed_pipe_input[], int unnamed_pipe_output[])
     int ret1 = close(unnamed_pipe_input[WRITING]);
     int ret2 = close(unnamed_pipe_output[READING]);
 
-    if (ret1 == RET_ERROR || ret2 == RET_ERROR)
-    {
-        TRACE("init_workers_pipes - closing pipes failed");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_workers_pipes - closing pipes failed\n");
 }
 
 // Initialise la structure de donnée
@@ -117,18 +107,11 @@ master_data init_master_structure()
 
     // Initialise le tube anonyme pour la lecture des renvois des workers
     int ret = pipe(md.unnamed_pipe_output);
-    if (ret == RET_ERROR)
-    {
-        TRACE("init_master_structure - anonymous output pipe doesn't created");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(ret == RET_ERROR, "init_master_structure - anonymous output pipe doesn't created\n");
 
     // Initialise le tube anonyme pour l'écriture vers les workers
     ret = pipe(md.unnamed_pipe_inputs);
-    if (ret == RET_ERROR)
-    {
-        TRACE("init_master_structure - anonymous input pipe doesn't created")
-    }
+    CHECK_RETURN(ret == RET_ERROR, "init_master_structure - anonymous input pipe doesn't created\n");
 
     init_workers_pipes(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
 
@@ -148,11 +131,7 @@ void stop(int output)
     printf("Fin des workers\n");
     printf("Fin du master\n");
     int ret = write(output, 0, sizeof(int));
-    if(ret == RET_ERROR)
-    {
-        TRACE("stop - write failed\n");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
 }
 
 // Compute prime - ORDER_COMPUTE_PRIME (N)
@@ -188,12 +167,7 @@ void destroy_structure_pipes_sems(master_data * md)
 {
     int ret1 = close(md->named_pipe_input);
     int ret2 = close(md->named_pipe_output);
-
-    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
-    {
-        TRACE("destroy_structure_pipes_sems - failed closing named pipes\n");
-        exit(EXIT_FAILURE);
-    }
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
 
     destroy_pipe(PIPE_MASTER_INPUT);
     destroy_pipe(PIPE_MASTER_OUTPUT);
@@ -205,11 +179,7 @@ void destroy_structure_pipes_sems(master_data * md)
     ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
     ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
 
-    if(ret1 == RET_ERROR || ret2 == RET_ERROR)
-    {
-        TRACE("destroy_structure_pipes_sems - failed destroy mutex\n");
-        exit(EXIT_FAILURE);
-    }   
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed destroy mutex\n");
 }
 
 void open_named_pipes_master(master_data * md)
@@ -234,11 +204,7 @@ void loop(master_data *md)
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
-        if(ret == RET_ERROR)
-        {
-            TRACE("loop - reading order failed");
-            exit(EXIT_FAILURE);
-        }
+        CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
         // TODO Mettre sémaphore ici
         // - si ORDER_STOP
         //       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
@@ -278,19 +244,12 @@ void loop(master_data *md)
         {
             int n;
             ret = read(md->named_pipe_input, &n, sizeof(int));
-            if(ret == RET_ERROR)
-            {
-                TRACE("loop - failed reading n\n");
-                exit(EXIT_FAILURE);
-            }
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
             
             bool isPrime = compute_prime(n, md);
             ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-            if(ret == RET_ERROR)
-            {
-                TRACE("loop - failed writing is prime\n");
-                exit(EXIT_FAILURE);
-            }
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+
             break;
         }
             
@@ -298,11 +257,8 @@ void loop(master_data *md)
         {
             int howManyCalc = get_primes_numbers_calculated(*md);
             ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-            if(ret == RET_ERROR)
-            {
-                TRACE("loop - failed writing how many prime\n");
-                exit(EXIT_FAILURE);
-            }
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+
             break;
         
         }
@@ -311,11 +267,8 @@ void loop(master_data *md)
         {
             int highest = get_highest_prime(*md);
             ret = write(md->named_pipe_output, &highest, sizeof(int));
-            if(ret == RET_ERROR)
-            {
-                TRACE("loop - failed writing highest prime\n");
-                exit(EXIT_FAILURE);
-            }
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+            
             break;
         }
 
@@ -328,13 +281,8 @@ void loop(master_data *md)
         int ret1 = close(md->named_pipe_input);
         int ret2 = close(md->named_pipe_output);
 
-        if(ret1 == RET_ERROR || ret2 == RET_ERROR)
-        {
-            TRACE("destroy_structure_pipes_sems - failed closing named pipes\n");
-            exit(EXIT_FAILURE);
-        }
+        CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
     }  
-    
 }
 
 /************************************************************************

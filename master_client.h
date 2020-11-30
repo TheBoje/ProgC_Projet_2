@@ -32,6 +32,9 @@
 #define WRITING 1
 #define READING 0
 
+// Macro permettant de tester le retour de fonctions
+#define CHECK_RETURN(c, m) if(c){TRACE(m); exit(EXIT_FAILURE);}
+
 // prendre mutex
 void take_mutex(int sem_id);
 
