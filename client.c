@@ -11,6 +11,8 @@
 #include <sys/sem.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <math.h>
 
 #include "myassert.h"
 
@@ -85,10 +87,72 @@ static int parseArgs(int argc, char *argv[], int *number)
  * Fonctions secondaires
  ************************************************************************/
 
+typedef struct
+{
+    int valeur;
+    int target;
+    bool *isPrime;
+} ThreadData;
+
+void *threadPrime(void *arg)
+{
+    ThreadData *data = (ThreadData *)arg;
+
+    bool *res = malloc(sizeof(bool));
+    *res = true;
+    if (data->target % data->valeur == 0)
+    {
+        *res = false;
+    }
+    else
+    {
+        *res = true;
+    }
+    *(((ThreadData *)arg)->isPrime) = *res;
+    return NULL;
+}
+
 bool compute_prime_local(int input)
 {
     fprintf(stdout, "Computing prime local of number [%d]\n", input);
-    return false;
+
+    int size = sqrt(input) + 1;
+    bool isPrimeTab[size];
+    ThreadData datas[size];
+    pthread_t threads[size];
+
+    for (int i = 0; i < size; i++)
+    {
+        isPrimeTab[i] = true;
+        datas[i].valeur = i;
+        datas[i].target = input;
+        datas[i].isPrime = &isPrimeTab[i];
+        *datas[i].isPrime = true;
+    }
+
+    for (int i = 2; i < size; i++)
+    {
+        int ret = pthread_create(&(threads[i]), NULL, threadPrime, &datas[i]);
+        myassert(ret == 0, "Error threads create\n");
+    }
+
+    for (int i = 2; i < size; i++)
+    {
+        int ret = pthread_join(threads[i], NULL);
+        myassert(ret == 0, "Error threads join\n");
+    }
+
+    bool res = true;
+    for (int i = 0; i < size; i++)
+    {
+        if (isPrimeTab[i] == false)
+        {
+            res = false;
+            break;
+        }
+    }
+
+    return res;
 }
 
 /************************************************************************
