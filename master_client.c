@@ -42,7 +42,7 @@ void sell_mutex(int sem_id)
 int *open_pipe(int side)
 {
     myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "Wrong side input");
-    int res[2];
+    int *res = malloc(sizeof(int) * 2); // TODO FREE ME
     if (side == SIDE_MASTER)
     {
         res[0] = open(PIPE_MASTER_INPUT, O_RDONLY);
