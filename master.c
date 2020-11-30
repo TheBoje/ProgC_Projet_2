@@ -20,8 +20,7 @@
 #include "master_client.h"
 #include "master_worker.h"
 
-
-#define INIT_MASTER_VALUE 0
+#define INIT_MASTER_VALUE 999
 
 /************************************************************************
  * Idées
@@ -78,7 +77,7 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
 
     int ret1 = semctl(sem1, 0, SETVAL, 1);
     int ret2 = semctl(sem2, 0, SETVAL, 1);
-    
+
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_sem - semaphore doesn't initialize\n");
 
     *sem_client_id = sem1;
@@ -139,7 +138,7 @@ void stop(int output)
 }
 
 // Compute prime - ORDER_COMPUTE_PRIME (N)
-bool compute_prime(int n, master_data * md)
+bool compute_prime(int n, master_data *md)
 {
     for (int i = 2; i < n; i++)
     {
@@ -166,8 +165,7 @@ int get_highest_prime(master_data md)
     return md.highest_prime;
 }
 
-
-void destroy_structure_pipes_sems(master_data * md)
+void destroy_structure_pipes_sems(master_data *md)
 {
     int ret1 = close(md->named_pipe_input);
     int ret2 = close(md->named_pipe_output);
@@ -179,14 +177,13 @@ void destroy_structure_pipes_sems(master_data * md)
     close_pipe(md->unnamed_pipe_inputs);
     close_pipe(md->unnamed_pipe_output);
 
-
     ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
     ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed destroy mutex\n");
 }
 
-void open_named_pipes_master(master_data * md)
+void open_named_pipes_master(master_data *md)
 {
     int fdsNamed[2];
     open_pipe(SIDE_MASTER, fdsNamed);
@@ -198,42 +195,41 @@ void open_named_pipes_master(master_data * md)
  * boucle principale de communication avec le client
  ************************************************************************/
 
-        // TODO Mettre sémaphore ici
-        // - si ORDER_STOP
-        //       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
-        //       . envoyer un accusé de réception au client
-        // - si ORDER_COMPUTE_PRIME
-        //       . récupérer le nombre N à tester provenant du client (dans master_client)
-        //       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-        //             il faut connaître le plus grand nombre (M) déjà envoyé aux workers
-        //             on leur envoie tous les nombres entre M+1 et N-1 (SQRT(N) ?)
-        //             note : chaque envoie déclenche une réponse des workers
-        //       . envoyer N dans le pipeline
-        //       . récupérer la réponse
-        //       . la transmettre au client
-        // - si ORDER_HOW_MANY_PRIME
-        //       . transmettre la réponse au client
-        // - si ORDER_HIGHEST_PRIME
-        //       . transmettre la réponse au client
-        // - fermer les tubes nommés (dans master_client)
-        // - attendre ordre du client avant de continuer (sémaphore : précédence
-        //      -> lire pipe client (dans master_client)
-        //          --> sémaphore
-        // - revenir en début de boucle
-        //
-        // il est important d'ouvrir et fermer les tubes nommés à chaque itération
-        // voyez-vous pourquoi ?
-        // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
-
+// TODO Mettre sémaphore ici
+// - si ORDER_STOP
+//       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
+//       . envoyer un accusé de réception au client
+// - si ORDER_COMPUTE_PRIME
+//       . récupérer le nombre N à tester provenant du client (dans master_client)
+//       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
+//             il faut connaître le plus grand nombre (M) déjà envoyé aux workers
+//             on leur envoie tous les nombres entre M+1 et N-1 (SQRT(N) ?)
+//             note : chaque envoie déclenche une réponse des workers
+//       . envoyer N dans le pipeline
+//       . récupérer la réponse
+//       . la transmettre au client
+// - si ORDER_HOW_MANY_PRIME
+//       . transmettre la réponse au client
+// - si ORDER_HIGHEST_PRIME
+//       . transmettre la réponse au client
+// - fermer les tubes nommés (dans master_client)
+// - attendre ordre du client avant de continuer (sémaphore : précédence
+//      -> lire pipe client (dans master_client)
+//          --> sémaphore
+// - revenir en début de boucle
+//
+// il est important d'ouvrir et fermer les tubes nommés à chaque itération
+// voyez-vous pourquoi ?
+// TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
 
 void loop(master_data *md)
 {
-    bool cont = true; 
-    while(cont)
+    bool cont = true;
+    while (cont)
     {
         // boucle infinie :
         // - ouverture des tubes (cf. rq client.c) (dans master_client)
-        open_named_pipes_master(md);    
+        open_named_pipes_master(md);
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
@@ -241,56 +237,55 @@ void loop(master_data *md)
 
         switch (order)
         {
-            case ORDER_STOP :
-                stop(md->named_pipe_output);
-                cont = false;
-                break;
-            
-            case ORDER_COMPUTE_PRIME :
-            {
-                int n;
-                ret = read(md->named_pipe_input, &n, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
-                
-                bool isPrime = compute_prime(n, md);
-                ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+        case ORDER_STOP:
+            stop(md->named_pipe_output);
+            cont = false;
+            break;
 
-                break;
-            }
-                
-            case ORDER_HOW_MANY_PRIME :
-            {
-                int howManyCalc = get_primes_numbers_calculated(*md);
-                ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+        case ORDER_COMPUTE_PRIME:
+        {
+            int n;
+            ret = read(md->named_pipe_input, &n, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
 
-                break;
-            
-            }
-                
-            case ORDER_HIGHEST_PRIME :
-            {
-                int highest = get_highest_prime(*md);
-                ret = write(md->named_pipe_output, &highest, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
-                
-                break;
-            }
+            bool isPrime = compute_prime(n, md);
+            ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
 
-            default:
-                TRACE("Order failure\n");
-                exit(EXIT_FAILURE);
-                break;
+            break;
+        }
+
+        case ORDER_HOW_MANY_PRIME:
+        {
+            int howManyCalc = get_primes_numbers_calculated(*md);
+            ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+
+            break;
+        }
+
+        case ORDER_HIGHEST_PRIME:
+        {
+            int highest = get_highest_prime(*md);
+            ret = write(md->named_pipe_output, &highest, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+
+            break;
+        }
+
+        default:
+            TRACE("Order failure\n");
+            exit(EXIT_FAILURE);
+            break;
         }
 
         int ret1 = close(md->named_pipe_input);
         int ret2 = close(md->named_pipe_output);
 
         CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
-    
+
         take_mutex(md->mutex_client_master_id);
-    }  
+    }
 }
 
 /************************************************************************

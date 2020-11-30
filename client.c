@@ -187,6 +187,8 @@ int main(int argc, char *argv[])
         //      . pour empêcher que 2 clients communiquent simultanément
         //      . le mutex est déjà créé par le master
         int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
+        int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, 0);
+
         take_mutex(sem_clients_id);
 
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
@@ -207,22 +209,32 @@ int main(int argc, char *argv[])
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
+            bool result_read;
+            int res = read(fd[READING], &result_read, sizeof(bool));
+            if (res == RET_ERROR)
+            {
+                fprintf(stderr, "Error read order from master\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Order : [%d] | Result : [%s]\n", order, result_read ? "true" : "false");
+        }
+        else
+        {
+            int result_read;
+            int res = read(fd[READING], &result_read, sizeof(int));
+            if (res == RET_ERROR)
+            {
+                fprintf(stderr, "Error read order from master\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Order : [%d] | Result : [%d]\n", order, result_read);
         }
 
         //  - attendre la réponse sur le second tube
         //      -> lire dans le pipe
-        int result_read;
-        int res = read(fd[READING], &result_read, sizeof(int));
-        if (res == RET_ERROR)
-        {
-            fprintf(stderr, "Error read order from master\n");
-            exit(EXIT_FAILURE);
-        }
-        printf("Order : [%d] | Result : [%d]\n", order, result_read);
 
         //      -> prendre second mutex
-        int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 0, 0);
-        take_mutex(sem_master_client_id);
+        take_mutex(sem_master_client_id); //DEBUG LEFT HERE
 
         //  - sortir de la section critique
         //      -> vendre le mutex
