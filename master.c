@@ -80,6 +80,8 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_sem - semaphore doesn't initialize\n");
 
+    fprintf(stdout, "sem1 val %d | sem2 val %d\n", semctl(sem1, 0, GETVAL), semctl(sem2, 0, GETVAL));
+
     *sem_client_id = sem1;
     *sem_client_master_id = sem2;
 }
@@ -144,7 +146,7 @@ bool compute_prime(int n, master_data *md)
     {
         // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
         // -> on traite les sorties des workrs via le tube anonyme input
-        printf("Envois du nombre %d", i);
+        printf("Envois du nombre %d\n", i);
     }
 
     // -> envois du nombre n
@@ -278,13 +280,15 @@ void loop(master_data *md)
             exit(EXIT_FAILURE);
             break;
         }
-
+        take_mutex(md->mutex_client_master_id);
         int ret1 = close(md->named_pipe_input);
+        printf("azeaze\n");
+        sell_mutex(md->mutex_client_master_id);
         int ret2 = close(md->named_pipe_output);
-
+        printf("wxcwxcw\n");
         CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
 
-        take_mutex(md->mutex_client_master_id);
+        //take_mutex(md->mutex_client_master_id);
     }
 }
 

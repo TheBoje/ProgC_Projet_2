@@ -206,6 +206,7 @@ int main(int argc, char *argv[])
         }
         // Dans le cas ou on demande de calculer si le nombre est premier
         // On envoie dans un second temps le nombre premier à vérifier
+        take_mutex(sem_master_client_id); // DEBUG
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
@@ -234,7 +235,8 @@ int main(int argc, char *argv[])
         //      -> lire dans le pipe
 
         //      -> prendre second mutex
-        take_mutex(sem_master_client_id);
+        //take_mutex(sem_master_client_id);
+
         //DEBUG LEFT HERE
 
         //  - sortir de la section critique
@@ -242,10 +244,25 @@ int main(int argc, char *argv[])
         sell_mutex(sem_clients_id);
         //  - libérer les ressources (fermeture des tubes, ...)
         //      -> fermeture des tubes
-        close_pipe(fd);
+        //close_pipe(fd);
+
+        int res = close(fd[READING]);
+        if (res == RET_ERROR)
+        {
+            fprintf(stderr, "Error close pipes\n");
+            exit(EXIT_FAILURE);
+        }
+
         //  - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
         //      -> vendre second mutex ORDER_STOP
         sell_mutex(sem_master_client_id);
+
+        res = close(fd[WRITING]);
+        if (res == RET_ERROR)
+        {
+            fprintf(stderr, "Error close pipes\n");
+            exit(EXIT_FAILURE);
+        }
 
         // TODO Une fois que le master a envoyé la réponse au client, il se bloque
         // sur un sémaphore ; le dernier point permet donc au master de continuer

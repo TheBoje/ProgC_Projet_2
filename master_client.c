@@ -67,13 +67,13 @@ void open_pipe(int side, int res[])
 // fermer les tubes nommés
 void close_pipe(int *fd)
 {
-    int res = close(fd[0]);
+    int res = close(fd[READING]);
     if (res == RET_ERROR)
     {
         fprintf(stderr, "Error close pipes\n");
         exit(EXIT_FAILURE);
     }
-    res = close(fd[1]);
+    res = close(fd[WRITING]);
     if (res == RET_ERROR)
     {
         fprintf(stderr, "Error close pipes\n");
