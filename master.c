@@ -242,51 +242,58 @@ void loop(master_data *md)
         int order;
         
         int ret = read(md->named_pipe_input, &order, sizeof(int));
+        printf("Valeur read : %d\n", order);
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
 
         switch (order)
         {
-        case ORDER_STOP:
-            cont = false;
-            stop(md);
-            break;
+            case ORDER_STOP:
+            {
+                cont = false;
+                stop(md);
+                break;
+            }
+                
 
-        case ORDER_COMPUTE_PRIME:
-        {
-            int n;
-            ret = read(md->named_pipe_input, &n, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
+            case ORDER_COMPUTE_PRIME:
+            {
+                int n;
+                ret = read(md->named_pipe_input, &n, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
 
-            bool isPrime = compute_prime(n, md);
-            ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+                bool isPrime = compute_prime(n, md);
+                ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
 
-            break;
-        }
+                break;
+            }
 
-        case ORDER_HOW_MANY_PRIME:
-        {
-            int howManyCalc = get_primes_numbers_calculated(*md);
-            ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-            printf("Envois du nombre de nombres premiers\n");
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+            case ORDER_HOW_MANY_PRIME:
+            {
+                int howManyCalc = get_primes_numbers_calculated(*md);
+                ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
+                printf("Envois du nombre de nombres premiers\n");
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
-            break;
-        }
+                break;
+            }
 
-        case ORDER_HIGHEST_PRIME:
-        {
-            int highest = get_highest_prime(*md);
-            ret = write(md->named_pipe_output, &highest, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+            case ORDER_HIGHEST_PRIME:
+            {
+                int highest = get_highest_prime(*md);
+                ret = write(md->named_pipe_output, &highest, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
 
-            break;
-        }
+                break;
+            }
 
-        default:
-            TRACE("Order failure\n");
-            exit(EXIT_FAILURE);
-            break;
+            default:
+            {
+                TRACE("Order failure\n");
+                exit(EXIT_FAILURE);
+                break;
+            }
+            
         }
         take_mutex(md->mutex_client_master_id);
         int ret1 = close(md->named_pipe_input);
