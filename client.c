@@ -165,6 +165,8 @@ int main(int argc, char *argv[])
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
 
+    
+
     /* =======================================================
     == order peut valoir 5 valeurs (cf. master_client.h) :  ==
     ==      - ORDER_COMPUTE_PRIME_LOCAL                     ==
@@ -189,6 +191,8 @@ int main(int argc, char *argv[])
         int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
         int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, 0);
 
+        take_mutex(sem_master_client_id); // DEBUG
+        printf("client a pris le mutex CLIENT-MASTER\n");
         take_mutex(sem_clients_id);
 
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
@@ -198,7 +202,9 @@ int main(int argc, char *argv[])
         open_pipe(SIDE_CLIENT, fd);
 
         //  - envoyer l'ordre et les données éventuelles au master
+        printf("Ordre %d a envoyer\n", order);
         int res_write = write(fd[WRITING], &order, sizeof(int));
+        
         printf("Ordre %d envoyé\n", order);
         if (res_write == RET_ERROR)
         {
@@ -207,7 +213,8 @@ int main(int argc, char *argv[])
         }
         // Dans le cas ou on demande de calculer si le nombre est premier
         // On envoie dans un second temps le nombre premier à vérifier
-        // take_mutex(sem_master_client_id); // DEBUG
+       
+        
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
@@ -236,12 +243,13 @@ int main(int argc, char *argv[])
         //      -> lire dans le pipe
 
         //      -> prendre second mutex
-        take_mutex(sem_master_client_id);
+        //take_mutex(sem_master_client_id);
 
         //DEBUG LEFT HERE
 
         //  - sortir de la section critique
         //      -> vendre le mutex
+        
         sell_mutex(sem_clients_id);
         //  - libérer les ressources (fermeture des tubes, ...)
         //      -> fermeture des tubes
@@ -256,7 +264,6 @@ int main(int argc, char *argv[])
 
         //  - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
         //      -> vendre second mutex ORDER_STOP
-        sell_mutex(sem_master_client_id);
 
         res = close(fd[WRITING]);
         if (res == RET_ERROR)
@@ -265,6 +272,8 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         }
 
+        printf("client vend le mutex CLIENT-MASTER\n");
+        sell_mutex(sem_master_client_id);
         // TODO Une fois que le master a envoyé la réponse au client, il se bloque
         // sur un sémaphore ; le dernier point permet donc au master de continuer
     }

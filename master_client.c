@@ -79,6 +79,7 @@ void close_pipe(int *fd)
         fprintf(stderr, "Error close pipes\n");
         exit(EXIT_FAILURE);
     }
+    printf("TOUT SE CLOSE\n");
 }
 
 // Destruction des tubes nommés

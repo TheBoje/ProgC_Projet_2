@@ -232,6 +232,7 @@ void stop(master_data *md)
 void loop(master_data *md)
 {
     bool cont = true;
+    
     while (cont)
     {
         // boucle infinie :
@@ -296,16 +297,26 @@ void loop(master_data *md)
             }
 
         }
-        int what;
-        read(md->named_pipe_input, &what, sizeof(int));
-        printf("Hey buddy c'est moi Chiantos le chiant %d\n", what);
+
+        /*int fds[2] = {md->named_pipe_input, md->named_pipe_output};
+        close_pipe(fds);*/
+        
+        printf("Avant le mutex master\n");
         take_mutex(md->mutex_client_master_id);
+        printf("Apres le mutex master\n");
         int ret1 = close(md->named_pipe_input);
 
+        sell_mutex(md->mutex_client_master_id);
 
         int ret2 = close(md->named_pipe_output);
+
+        // int what;
+
+        // md->named_pipe_input = open(PIPE_MASTER_INPUT, 00, "0660");
+        // read(md->named_pipe_input, &what, sizeof(int));
+        // printf("Hey buddy c'est moi Chiantos le chiant %d\n", what);
         CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
-        sell_mutex(md->mutex_client_master_id);
+        
     }
 }
 
