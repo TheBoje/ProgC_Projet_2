@@ -199,6 +199,7 @@ int main(int argc, char *argv[])
 
         //  - envoyer l'ordre et les données éventuelles au master
         int res_write = write(fd[WRITING], &order, sizeof(int));
+        printf("Ordre %d envoyé\n", order);
         if (res_write == RET_ERROR)
         {
             fprintf(stderr, "Error write order to master\n");
@@ -206,7 +207,7 @@ int main(int argc, char *argv[])
         }
         // Dans le cas ou on demande de calculer si le nombre est premier
         // On envoie dans un second temps le nombre premier à vérifier
-        take_mutex(sem_master_client_id); // DEBUG
+        // take_mutex(sem_master_client_id); // DEBUG
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
         //      -> lire dans le pipe
 
         //      -> prendre second mutex
-        //take_mutex(sem_master_client_id);
+        take_mutex(sem_master_client_id);
 
         //DEBUG LEFT HERE
 

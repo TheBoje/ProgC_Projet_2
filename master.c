@@ -271,6 +271,7 @@ void loop(master_data *md)
             case ORDER_HOW_MANY_PRIME:
             {
                 int howManyCalc = get_primes_numbers_calculated(*md);
+                printf("Préparation envois du nombre de nombres premiers\n");
                 ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
                 printf("Envois du nombre de nombres premiers\n");
                 CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
