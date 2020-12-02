@@ -240,7 +240,7 @@ void loop(master_data *md)
         open_named_pipes_master(md);
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
-        
+
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         printf("Valeur read : %d\n", order);
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
@@ -253,7 +253,7 @@ void loop(master_data *md)
                 stop(md);
                 break;
             }
-                
+
 
             case ORDER_COMPUTE_PRIME:
             {
@@ -294,14 +294,18 @@ void loop(master_data *md)
                 exit(EXIT_FAILURE);
                 break;
             }
-            
+
         }
+        int what;
+        read(md->named_pipe_input, &what, sizeof(int));
+        printf("Hey buddy c'est moi Chiantos le chiant %d\n", what);
         take_mutex(md->mutex_client_master_id);
         int ret1 = close(md->named_pipe_input);
 
-        sell_mutex(md->mutex_client_master_id);
+
         int ret2 = close(md->named_pipe_output);
         CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
+        sell_mutex(md->mutex_client_master_id);
     }
 }
 
