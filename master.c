@@ -157,7 +157,8 @@ void destroy_structure_pipes_sems(master_data *md)
     printf("Destroying pipes\n");
     int ret1 = close(md->named_pipe_input);
     int ret2 = close(md->named_pipe_output);
-    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
+    CHECK_RETURN(ret1 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes input\n");
+    CHECK_RETURN(ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes output\n")
 
     destroy_pipe(PIPE_MASTER_INPUT);
     destroy_pipe(PIPE_MASTER_OUTPUT);
@@ -170,7 +171,7 @@ void destroy_structure_sems(master_data *md)
     int ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
     int ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
 
-    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed destroy mutex\n");
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_sems - failed destroy mutex\n");
 }
 
 void open_named_pipes_master(master_data *md)
@@ -235,10 +236,11 @@ void loop(master_data *md)
     {
         // boucle infinie :
         // - ouverture des tubes (cf. rq client.c) (dans master_client)
+        printf("Attente de l'ouverture du pipe\n");
         open_named_pipes_master(md);
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
-        printf("Attente d'un ordre du client\n");
+        
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
 
