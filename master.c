@@ -238,6 +238,7 @@ void loop(master_data *md)
         open_named_pipes_master(md);
         // - attente d'un ordre du client (via le tube nommé) (dans master_client)
         int order;
+        printf("Attente d'un ordre du client\n");
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
 
@@ -265,6 +266,7 @@ void loop(master_data *md)
         {
             int howManyCalc = get_primes_numbers_calculated(*md);
             ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
+            printf("Envois du nombre de nombres premiers\n");
             CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
             break;
