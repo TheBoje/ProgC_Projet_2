@@ -19,8 +19,8 @@
 
 #include "master_client.h"
 #include "master_worker.h"
-
-#define INIT_MASTER_VALUE 999
+// TODO Set me to 0
+#define INIT_MASTER_VALUE 1
 
 /************************************************************************
  * Idées
@@ -80,8 +80,6 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_sem - semaphore doesn't initialize\n");
 
-    fprintf(stdout, "sem1 val %d | sem2 val %d\n", semctl(sem1, 0, GETVAL), semctl(sem2, 0, GETVAL));
-
     *sem_client_id = sem1;
     *sem_client_master_id = sem2;
 }
@@ -126,19 +124,6 @@ master_data init_master_structure()
     return md;
 }
 
-// Envoie d'accusé de reception - ORDER_STOP TODO
-void stop(int output)
-{
-    // -> Lancer l'odre de fin pour les worker
-    // -> attendre la fin des workers
-    // -> envoyer le signal de fin au client
-
-    printf("Fin des workers\n");
-    printf("Fin du master\n");
-    int ret = write(output, 0, sizeof(int));
-    CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
-}
-
 // Compute prime - ORDER_COMPUTE_PRIME (N)
 bool compute_prime(int n, master_data *md)
 {
@@ -169,6 +154,7 @@ int get_highest_prime(master_data md)
 
 void destroy_structure_pipes_sems(master_data *md)
 {
+    printf("Destroying pipes and sems");
     int ret1 = close(md->named_pipe_input);
     int ret2 = close(md->named_pipe_output);
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
@@ -176,13 +162,11 @@ void destroy_structure_pipes_sems(master_data *md)
     destroy_pipe(PIPE_MASTER_INPUT);
     destroy_pipe(PIPE_MASTER_OUTPUT);
 
-    close_pipe(md->unnamed_pipe_inputs);
-    close_pipe(md->unnamed_pipe_output);
-
     ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
     ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed destroy mutex\n");
+    printf("Done destroying");
 }
 
 void open_named_pipes_master(master_data *md)
@@ -191,6 +175,22 @@ void open_named_pipes_master(master_data *md)
     open_pipe(SIDE_MASTER, fdsNamed);
     md->named_pipe_input = fdsNamed[READING];
     md->named_pipe_output = fdsNamed[WRITING];
+}
+
+// Envoie d'accusé de reception - ORDER_STOP TODO
+void stop(master_data *md)
+{
+    // -> Lancer l'odre de fin pour les worker
+    // -> attendre la fin des workers
+    // -> envoyer le signal de fin au client
+    // TODO Delete sémaphores et tubes
+    // TODO attendre la fin des workers
+    printf("Fin des workers\n");
+    int confirmation = CONFIRMATION_STOP;
+    int ret = write(md->named_pipe_output, &confirmation, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
+    destroy_structure_pipes_sems(md);
+    printf("Fin du master\n");
 }
 
 /************************************************************************
@@ -240,8 +240,8 @@ void loop(master_data *md)
         switch (order)
         {
         case ORDER_STOP:
-            stop(md->named_pipe_output);
             cont = false;
+            stop(md);
             break;
 
         case ORDER_COMPUTE_PRIME:
@@ -282,13 +282,11 @@ void loop(master_data *md)
         }
         take_mutex(md->mutex_client_master_id);
         int ret1 = close(md->named_pipe_input);
-        printf("azeaze\n");
+
         sell_mutex(md->mutex_client_master_id);
         int ret2 = close(md->named_pipe_output);
-        printf("wxcwxcw\n");
-        CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
 
-        //take_mutex(md->mutex_client_master_id);
+        CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
     }
 }
 

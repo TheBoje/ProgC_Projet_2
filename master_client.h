@@ -7,6 +7,7 @@
 //      manipulation de sémaphores, ...)
 
 #define RET_ERROR -1
+#define CONFIRMATION_STOP 99
 
 // ordres possibles pour le master
 #define ORDER_NONE 0
@@ -33,7 +34,12 @@
 #define READING 0
 
 // Macro permettant de tester le retour de fonctions
-#define CHECK_RETURN(c, m) if(c){TRACE(m); exit(EXIT_FAILURE);}
+#define CHECK_RETURN(c, m)  \
+    if (c)                  \
+    {                       \
+        TRACE(m);           \
+        exit(EXIT_FAILURE); \
+    }
 
 // prendre mutex
 void take_mutex(int sem_id);
