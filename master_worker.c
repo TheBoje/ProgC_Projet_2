@@ -35,10 +35,10 @@ void create_pipes_master(int *input, int *output)
 
 void init_pipes_master(int input[], int output[])
 {
-    int ret = open(input[READING], O_RDONLY);
+    int ret = close(input[WRITING]);
     CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening input pipe\n");
 
-    ret = open(output[WRITING], O_WRONLY);
+    ret = close(output[READING]);
     CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening output pipe\n");
 }
 
