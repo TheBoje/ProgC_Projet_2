@@ -8,7 +8,8 @@
 #define INIT_WORKER_VALUE -1
 #define INIT_WORKER_NEXT_PIPE -1
 #define ORDRE_ARRET -2
-#define IS_PRIME 1
+#define IS_PRIME -3
+#define IS_NOT_PRIME -4
 
 // Macro permettant de tester le retour de fonctions
 #define CHECK_RETURN(c, m)  \
