@@ -12,4 +12,17 @@
     #define TRACE2(x,p1)
 #endif
 
+#define WRITING 1
+#define READING 0
+
+// Macro permettant de tester le retour de fonctions
+#define CHECK_RETURN(c, m)  \
+    if (c)                  \
+    {                       \
+        TRACE(m);           \
+        exit(EXIT_FAILURE); \
+    }
+
+#define RET_ERROR -1
+
 #endif

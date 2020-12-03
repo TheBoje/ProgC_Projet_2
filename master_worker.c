@@ -1,12 +1,50 @@
+#define HAVE_CONFIG_H
+
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "myassert.h"
 
 #include "master_worker.h"
 
 // fonctions éventuelles proposées dans le .h
+// intput -> pipe dans lequel le master lit la réponse du worker
+// ouput -> pipe dans lequel le master écrit au worker
+void create_pipes_master(int input[], int output[])
+{
+    int fdsInput[2], fdsOutput[2];
+    int ret1 = pipe(fdsInput);
+    int ret2 = pipe(fdsOutput);
+
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "create_pipes_master - pipe not created\n");
+
+    *input = fdsInput;
+    *output = fdsOutput;
+}
+
+void init_pipes_master(int input[], int output[])
+{
+    int ret = open(input[READING]);
+    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening input pipe\n");
+
+    ret = open(output[WRITING]);
+    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening output pipe\n");
+}
+
+void create_worker(int workerIn, int workerOut)
+{
+    char n1[10], n2[10], prime[10];
+    int ret1 = sprintf(n1, "%d", workerIn);
+    int ret2 = sprintf(n2, "%d", workerOut);
+    int ret3 = sprintf(prime, "%d", FIRST_PRIME_NUMBER);
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR || ret3 == RET_ERROR, "create_worker - failed convert int to char *\n");
+
+    char * args[] = {"./worker", n1, n2, prime, NULL};
+    int ret = execv("./worker", args);
+    CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
+}

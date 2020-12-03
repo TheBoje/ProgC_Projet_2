@@ -6,7 +6,7 @@
 //    - des fonctions communes (création tubes, écriture dans un tube,
 //      manipulation de sémaphores, ...)
 
-#define RET_ERROR -1
+
 #define CONFIRMATION_STOP 99
 
 // ordres possibles pour le master
@@ -30,16 +30,9 @@
 #define SIDE_MASTER 0
 #define SIDE_CLIENT 1
 
-#define WRITING 1
-#define READING 0
 
-// Macro permettant de tester le retour de fonctions
-#define CHECK_RETURN(c, m)  \
-    if (c)                  \
-    {                       \
-        TRACE(m);           \
-        exit(EXIT_FAILURE); \
-    }
+
+
 
 // prendre mutex
 void take_mutex(int sem_id);
