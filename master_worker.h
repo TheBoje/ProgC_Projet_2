@@ -7,7 +7,6 @@
 //    - des fonctions communes (écriture dans un tube, ...)
 #define INIT_WORKER_VALUE -1;
 #define INIT_WORKER_NEXT_PIPE -1;
-#define RET_ERROR -1
 #define ORDRE_ARRET -2
 
 // Macro permettant de tester le retour de fonctions
