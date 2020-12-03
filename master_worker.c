@@ -1,7 +1,6 @@
 
 #include "config.h"
 
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -23,7 +22,6 @@ void create_pipes_master(int *input, int *output)
     int ret2 = pipe(fdsOutput);
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "create_pipes_master - pipe not created\n");
-
 
     // TODO changer cette merde
     input[0] = fdsInput[0];
@@ -50,7 +48,8 @@ void create_worker(int workerIn, int workerOut)
     int ret3 = sprintf(prime, "%d", FIRST_PRIME_NUMBER);
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR || ret3 == RET_ERROR, "create_worker - failed convert int to char *\n");
 
-    char * args[] = {"./worker", prime, n1, n2, NULL};
+    char *args[] = {"./worker", prime, n1, n2, NULL};
     int ret = execv("./worker", args);
     CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
+    printf("Worker created\n");
 }
