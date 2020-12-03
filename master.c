@@ -20,7 +20,7 @@
 #include "master_client.h"
 #include "master_worker.h"
 // TODO Set me to 0
-#define INIT_MASTER_VALUE 1
+#define INIT_MASTER_VALUE 0
 
 /************************************************************************
  * Idées
@@ -245,7 +245,7 @@ void order_compute_prime(master_data *md)
 void loop(master_data *md)
 {
     bool cont = true;
-    
+
     while (cont)
     {
         printf("Attente de l'ouverture du pipe\n");
@@ -258,46 +258,44 @@ void loop(master_data *md)
 
         switch (order)
         {
-            case ORDER_STOP:
-                cont = false;
-                stop(md);
-                break;
+        case ORDER_STOP:
+            cont = false;
+            stop(md);
+            break;
 
+        case ORDER_COMPUTE_PRIME:
+            order_compute_prime(md);
+            break;
 
-            case ORDER_COMPUTE_PRIME:
-                order_compute_prime(md);
-                break;
+        case ORDER_HOW_MANY_PRIME:
+        {
+            int howManyCalc = get_primes_numbers_calculated(*md);
+            ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
-            case ORDER_HOW_MANY_PRIME:
-            {
-                int howManyCalc = get_primes_numbers_calculated(*md);
-                ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+            break;
+        }
 
-                break;
-            }
+        case ORDER_HIGHEST_PRIME:
+        {
+            int highest = get_highest_prime(*md);
+            ret = write(md->named_pipe_output, &highest, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
 
-            case ORDER_HIGHEST_PRIME:
-            {
-                int highest = get_highest_prime(*md);
-                ret = write(md->named_pipe_output, &highest, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+            break;
+        }
 
-                break;
-            }
-
-            default:
-            {
-                TRACE("Order failure\n");
-                exit(EXIT_FAILURE);
-                break;
-            }
-
+        default:
+        {
+            TRACE("Order failure\n");
+            exit(EXIT_FAILURE);
+            break;
+        }
         }
 
         // On prend le mutex pour être sur de fermer les pipes correctement si on continue la boucle (permet d'attendre le client aussi)
-        take_mutex(md->mutex_client_master_id); 
-        if(cont)
+        take_mutex(md->mutex_client_master_id);
+        if (cont)
         {
             ret = close(md->named_pipe_input);
             CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes input\n");
@@ -305,8 +303,8 @@ void loop(master_data *md)
             ret = close(md->named_pipe_output);
 
             CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes output\n");
-        }   
-        sell_mutex(md->mutex_client_master_id);     
+        }
+        sell_mutex(md->mutex_client_master_id);
     }
 }
 
@@ -319,8 +317,8 @@ int main(int argc, char *argv[])
     if (argc != 1)
         usage(argv[0], NULL);
 
-    init_named_pipes();                         // Initialisation des pipes pour les clients
-    master_data md = init_master_structure();   // Initialisation des pipes pour les workers et des sémaphores
+    init_named_pipes();                       // Initialisation des pipes pour les clients
+    master_data md = init_master_structure(); // Initialisation des pipes pour les workers et des sémaphores
 
     // - création du premier worker
     //      -> init premier worker
@@ -328,7 +326,7 @@ int main(int argc, char *argv[])
     // boucle infinie
     loop(&md);
 
-    destroy_structure_pipes_sems(&md);          // destruction des tubes nommés, des sémaphores, ...
+    destroy_structure_pipes_sems(&md); // destruction des tubes nommés, des sémaphores, ...
 
     return EXIT_SUCCESS;
 }

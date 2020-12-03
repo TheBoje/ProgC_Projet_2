@@ -2,9 +2,13 @@
 #include "config.h"
 #endif
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "myassert.h"
 
@@ -30,7 +34,27 @@ typedef struct worker_data
     int unnamed_pipe_master;
     int worker_prime_number;
     int input_number;
+    bool hasNext;
 } worker_data;
+
+/************************************************************************
+ * Fonctions secondaires
+ ************************************************************************/
+void init_worker_structure(worker_data *wd, int worker_prime_number, int unnamed_pipe_previous, int unnamed_pipe_master)
+{
+    wd->unnamed_pipe_previous = unnamed_pipe_previous;
+    wd->unnamed_pipe_next = INIT_WORKER_NEXT_PIPE;
+    wd->unnamed_pipe_master = unnamed_pipe_master;
+    wd->worker_prime_number = worker_prime_number;
+    wd->input_number = INIT_WORKER_VALUE;
+    wd->hasNext = false;
+}
+
+void close_worker(worker_data *wd)
+{
+    printf("Worker [%d] closing", wd->worker_prime_number);
+}
+// check nombre premier
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -48,25 +72,42 @@ usage(const char *exeName, const char *message)
     exit(EXIT_FAILURE);
 }
 
-static void parseArgs(int argc, char *argv[] /*, structure à remplir*/)
+static void parseArgs(int argc, char *argv[], worker_data *wd)
 {
     if (argc != 4)
         usage(argv[0], "Nombre d'arguments incorrect");
 
-    // remplir la structure
+    init_worker_structure(wd, atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
 }
-/************************************************************************
- * Fonctions secondaires
- ************************************************************************/
-
-// check nombre premier
 
 /************************************************************************
  * Boucle principale de traitement
  ************************************************************************/
 
-void loop(/* paramètres */)
+void loop(worker_data *wd)
 {
+    bool cont = true;
+
+    while (cont)
+    {
+        printf("Worker [%d] en attente", wd->worker_prime_number);
+        int read_number;
+        int ret = read(wd->unnamed_pipe_previous, &read_number, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "worker - reading order failed\n");
+
+        if (read_number == ORDRE_ARRET)
+        {
+            int toWrite = ORDRE_ARRET;
+            ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
+
+            close_worker(wd);
+        }
+        else
+        {
+            /* code */
+        }
+    }
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
     //      -> lecture sur le pipe (dans master_worker)
@@ -91,12 +132,14 @@ void loop(/* paramètres */)
 
 int main(int argc, char *argv[])
 {
-    parseArgs(argc, argv /*, structure à remplir*/);
+
+    worker_data wd;
+    parseArgs(argc, argv, &wd);
 
     // Si on est créé c'est qu'on est un nombre premier
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
-    loop(/* paramètres */);
+    loop(&wd);
 
     // libérer les ressources : fermeture des files descriptors par exemple
 
