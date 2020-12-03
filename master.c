@@ -126,9 +126,17 @@ bool compute_prime(int n, master_data *md)
 {
     for (int i = 2; i < n; i++)
     {
+        // TODO
         // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
         // -> on traite les sorties des workrs via le tube anonyme input
-        printf("Envois du nombre %d\n", i);
+        printf("Envoi du nombre %d\n", i);
+        int toWrite = i;
+        int ret = write(md->unnamed_pipe_output[WRITING], &toWrite, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "master - failed write to worker\n");
+        int read_result = 0;
+        ret = read(md->unnamed_pipe_inputs[READING], &read_result, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "master - failed read from worker\n");
+        printf("RESULT WORKER [%d] | [%d]\n", i, read_result);
     }
 
     // -> envois du nombre n

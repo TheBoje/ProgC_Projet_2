@@ -16,15 +16,6 @@
  * Données persistantes d'un worker
  ************************************************************************/
 
-// on peut ici définir une structure stockant tout ce dont le worker
-// a besoin : le nombre premier dont il a la charge, ...
-
-// Liste :
-// - Tube anonyme précédent -> self
-// - Tube anonyme self -> suivant
-// - Tube anonyme self -> master
-// - Nombre cible (N)
-// - Nombre premier dont il a la charge (P)
 typedef struct worker_data
 {
     int unnamed_pipe_previous;
@@ -50,12 +41,12 @@ void init_worker_structure(worker_data *wd, int worker_prime_number, int unnamed
 
 void close_worker(worker_data *wd)
 {
-    printf("Worker [%d] closing\n", wd->worker_prime_number);
+    printf("Worker [%d] closing\n", wd->worker_prime_number); // TODO This
 }
 
 bool isPrime(worker_data *wd)
 {
-    return false; // TODO This
+    return !(wd->input_number % wd->worker_prime_number == 0);
 }
 
 /************************************************************************
@@ -99,27 +90,60 @@ void loop(worker_data *wd)
 
         if (read_number == ORDRE_ARRET)
         {
-            int toWrite = ORDRE_ARRET;
-            ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
-
+            if (wd->hasNext)
+            {
+                int toWrite = ORDRE_ARRET;
+                ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
+            }
+            cont = false;
             close_worker(wd);
+            break;
         }
         else
         {
-            // TODO Ecrire au prochain pas au MASTER idiot
-            // if (isPrime(wd))
-            // {
-            //     int toWrite = IS_PRIME;
-            //     ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing result to master\n");
-            // }
-            // else if (!isPrime(wd))
-            // {
-            //     int toWrite = IS_NOT_PRIME;
-            //     ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing result to master\n");
-            // }
+            wd->input_number = read_number;
+            if (wd->input_number == wd->worker_prime_number)
+            {
+                printf("Worker [%d] is last; writting to master\n", wd->worker_prime_number);
+                int toWrite = IS_PRIME;
+                ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
+            }
+            else if (!isPrime(wd))
+            {
+                int toWrite = IS_NOT_PRIME;
+                ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
+            }
+            else
+            {
+                if (wd->hasNext)
+                {
+                    ret = write(wd->unnamed_pipe_next, &wd->input_number, sizeof(int));
+                    CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to next worker\n");
+                }
+                else
+                {
+                    int resFork = fork();
+                    CHECK_RETURN(resFork == RET_ERROR, "worker - failed fork to next worker\n");
+                    if (resFork == 0) // next worker
+                    {
+                        wd->worker_prime_number += 1; // TODO ????
+                        printf("worker [%d] forked\n", wd->worker_prime_number);
+                        // TODO :
+                        /*
+                            - Changer les pipes correctement
+                            - ????
+                            - Profit
+                        */
+                    }
+                    else
+                    {
+                        wd->hasNext = true;
+                    }
+                }
+            }
         }
     }
     // boucle infinie :
