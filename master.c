@@ -152,6 +152,14 @@ int get_highest_prime(master_data md)
     return md.highest_prime;
 }
 
+void destroy_structure_sems(master_data *md)
+{
+    int ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
+    int ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
+
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_sems - failed destroy mutex\n");
+}
+
 void destroy_structure_pipes_sems(master_data *md)
 {
     printf("Destroying pipes\n");
@@ -163,15 +171,9 @@ void destroy_structure_pipes_sems(master_data *md)
     destroy_pipe(PIPE_MASTER_INPUT);
     destroy_pipe(PIPE_MASTER_OUTPUT);
 
+    destroy_structure_sems(md);
+
     printf("Done destroying\n");
-}
-
-void destroy_structure_sems(master_data *md)
-{
-    int ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
-    int ret2 = semctl(md->mutex_clients_id, 0, IPC_RMID);
-
-    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_sems - failed destroy mutex\n");
 }
 
 void open_named_pipes_master(master_data *md)
@@ -194,7 +196,7 @@ void stop(master_data *md)
     int confirmation = CONFIRMATION_STOP;
     int ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
-    destroy_structure_pipes_sems(md);
+    // destroy_structure_pipes_sems(md);
     printf("Fin du master\n");
 }
 
@@ -300,22 +302,19 @@ void loop(master_data *md)
 
         /*int fds[2] = {md->named_pipe_input, md->named_pipe_output};
         close_pipe(fds);*/
-        
+        //printf("Avant le mutex master\n");
+        take_mutex(md->mutex_client_master_id);
+        //printf("Apres le mutex master\n");
         if(cont)
         {
-            //printf("Avant le mutex master\n");
-            take_mutex(md->mutex_client_master_id);
-            //printf("Apres le mutex master\n");
-
             ret = close(md->named_pipe_input);
             CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes input\n");
-
-            sell_mutex(md->mutex_client_master_id);
 
             ret = close(md->named_pipe_output);
 
             CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes output\n");
-        }        
+        }   
+        sell_mutex(md->mutex_client_master_id);     
     }
 }
 
@@ -341,7 +340,7 @@ int main(int argc, char *argv[])
     loop(&md);
 
     // destruction des tubes nommés, des sémaphores, ...
-    destroy_structure_sems(&md);
+    destroy_structure_pipes_sems(&md);
 
     return EXIT_SUCCESS;
 }
