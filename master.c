@@ -231,19 +231,27 @@ void stop(master_data *md)
 // voyez-vous pourquoi ?
 // TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
 
+void order_compute_prime(master_data *md)
+{
+    int n, ret;
+    ret = read(md->named_pipe_input, &n, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
+
+    bool isPrime = compute_prime(n, md);
+    ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
+    CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+}
+
 void loop(master_data *md)
 {
     bool cont = true;
     
     while (cont)
     {
-        // boucle infinie :
-        // - ouverture des tubes (cf. rq client.c) (dans master_client)
         printf("Attente de l'ouverture du pipe\n");
-        open_named_pipes_master(md);
-        // - attente d'un ordre du client (via le tube nommé) (dans master_client)
-        int order;
+        open_named_pipes_master(md); // Ouverture des pipes en liaison avec les clients (l'ouverture est blocante)
 
+        int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         printf("Valeur read : %d\n", order);
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
@@ -251,32 +259,19 @@ void loop(master_data *md)
         switch (order)
         {
             case ORDER_STOP:
-            {
                 cont = false;
                 stop(md);
                 break;
-            }
 
 
             case ORDER_COMPUTE_PRIME:
-            {
-                int n;
-                ret = read(md->named_pipe_input, &n, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
-
-                bool isPrime = compute_prime(n, md);
-                ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-                CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
-
+                order_compute_prime(md);
                 break;
-            }
 
             case ORDER_HOW_MANY_PRIME:
             {
                 int howManyCalc = get_primes_numbers_calculated(*md);
-                printf("Préparation envois du nombre de nombres premiers\n");
                 ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-                printf("Envois du nombre de nombres premiers\n");
                 CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
                 break;
@@ -300,11 +295,8 @@ void loop(master_data *md)
 
         }
 
-        /*int fds[2] = {md->named_pipe_input, md->named_pipe_output};
-        close_pipe(fds);*/
-        //printf("Avant le mutex master\n");
-        take_mutex(md->mutex_client_master_id);
-        //printf("Apres le mutex master\n");
+        // On prend le mutex pour être sur de fermer les pipes correctement si on continue la boucle (permet d'attendre le client aussi)
+        take_mutex(md->mutex_client_master_id); 
         if(cont)
         {
             ret = close(md->named_pipe_input);
@@ -327,20 +319,16 @@ int main(int argc, char *argv[])
     if (argc != 1)
         usage(argv[0], NULL);
 
-    // - création des sémaphores
-    //      -> init sémaphores
-    // - création des tubes nommés
-    //      -> init tubes nommés
-    init_named_pipes();
-    master_data md = init_master_structure();
+    init_named_pipes();                         // Initialisation des pipes pour les clients
+    master_data md = init_master_structure();   // Initialisation des pipes pour les workers et des sémaphores
+
     // - création du premier worker
     //      -> init premier worker
 
     // boucle infinie
     loop(&md);
 
-    // destruction des tubes nommés, des sémaphores, ...
-    destroy_structure_pipes_sems(&md);
+    destroy_structure_pipes_sems(&md);          // destruction des tubes nommés, des sémaphores, ...
 
     return EXIT_SUCCESS;
 }
