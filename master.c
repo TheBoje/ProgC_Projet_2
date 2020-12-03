@@ -8,6 +8,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -188,6 +189,7 @@ void stop(master_data *md)
     // -> envoyer le signal de fin au client
     // TODO Delete sémaphores et tubes
     // TODO attendre la fin des workers
+    wait(NULL);
     printf("Fin des workers\n");
     int confirmation = CONFIRMATION_STOP;
     int ret = write(md->named_pipe_output, &confirmation, sizeof(int));

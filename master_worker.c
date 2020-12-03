@@ -47,9 +47,15 @@ void create_worker(int workerIn, int workerOut)
     int ret2 = sprintf(n2, "%d", workerOut);
     int ret3 = sprintf(prime, "%d", FIRST_PRIME_NUMBER);
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR || ret3 == RET_ERROR, "create_worker - failed convert int to char *\n");
-
     char *args[] = {"./worker", prime, n1, n2, NULL};
-    int ret = execv("./worker", args);
-    CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
-    printf("Worker created\n");
+
+    int resFork = fork();
+    CHECK_RETURN(resFork == RET_ERROR, "create_worker - failed fork master\n");
+
+    if(resFork == 0)
+    {
+        int ret = execv("./worker", args);
+        CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
+        printf("Worker created\n");
+    }
 }
