@@ -1,3 +1,4 @@
+#define HAVE_CONFIG_H
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -133,13 +134,13 @@ bool compute_prime_local(int input)
     for (int i = 2; i < size; i++)
     {
         int ret = pthread_create(&(threads[i]), NULL, threadPrime, &datas[i]);
-        myassert(ret == 0, "Error threads create\n");
+        CHECK_RETURN(ret == RET_ERROR, "Client local compute - Error threads create\n");
     }
 
     for (int i = 2; i < size; i++)
     {
         int ret = pthread_join(threads[i], NULL);
-        myassert(ret == 0, "Error threads join\n");
+        CHECK_RETURN(ret == RET_ERROR, "Client local compute - Error threads join\n");
     }
 
     bool res = true;
@@ -165,8 +166,6 @@ int main(int argc, char *argv[])
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
 
-    
-
     /* =======================================================
     == order peut valoir 5 valeurs (cf. master_client.h) :  ==
     ==      - ORDER_COMPUTE_PRIME_LOCAL                     ==
@@ -191,8 +190,7 @@ int main(int argc, char *argv[])
         int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
         int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, 0);
 
-        take_mutex(sem_master_client_id); // DEBUG
-        printf("client a pris le mutex CLIENT-MASTER\n");
+        take_mutex(sem_master_client_id);
         take_mutex(sem_clients_id);
 
         //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
@@ -202,40 +200,25 @@ int main(int argc, char *argv[])
         open_pipe(SIDE_CLIENT, fd);
 
         //  - envoyer l'ordre et les données éventuelles au master
-        printf("Ordre %d a envoyer\n", order);
-        int res_write = write(fd[WRITING], &order, sizeof(int));
-        
-        printf("Ordre %d envoyé\n", order);
-        if (res_write == RET_ERROR)
-        {
-            fprintf(stderr, "Error write order to master\n");
-            exit(EXIT_FAILURE);
-        }
+        int ret = write(fd[WRITING], &order, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "Client - Error write order to master\n");
+
         // Dans le cas ou on demande de calculer si le nombre est premier
         // On envoie dans un second temps le nombre premier à vérifier
-       
-        
+
         if (order == ORDER_COMPUTE_PRIME)
         {
             write(fd[1], &number, sizeof(int));
             bool result_read;
-            int res = read(fd[READING], &result_read, sizeof(bool));
-            if (res == RET_ERROR)
-            {
-                fprintf(stderr, "Error read order from master\n");
-                exit(EXIT_FAILURE);
-            }
+            ret = read(fd[READING], &result_read, sizeof(bool));
+            CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Result : [%s]\n", order, result_read ? "true" : "false");
         }
         else
         {
             int result_read;
-            int res = read(fd[READING], &result_read, sizeof(int));
-            if (res == RET_ERROR)
-            {
-                fprintf(stderr, "Error read order from master\n");
-                exit(EXIT_FAILURE);
-            }
+            ret = read(fd[READING], &result_read, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Result : [%d]\n", order, result_read);
         }
 
@@ -249,30 +232,21 @@ int main(int argc, char *argv[])
 
         //  - sortir de la section critique
         //      -> vendre le mutex
-        
+
         sell_mutex(sem_clients_id);
         //  - libérer les ressources (fermeture des tubes, ...)
         //      -> fermeture des tubes
         //close_pipe(fd);
 
-        int res = close(fd[READING]);
-        if (res == RET_ERROR)
-        {
-            fprintf(stderr, "Error close pipes\n");
-            exit(EXIT_FAILURE);
-        }
+        ret = close(fd[READING]);
+        CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe reading\n");
 
         //  - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
         //      -> vendre second mutex ORDER_STOP
 
-        res = close(fd[WRITING]);
-        if (res == RET_ERROR)
-        {
-            fprintf(stderr, "Error close pipes\n");
-            exit(EXIT_FAILURE);
-        }
+        ret = close(fd[WRITING]);
+        CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe writting\n");
 
-        printf("client vend le mutex CLIENT-MASTER\n");
         sell_mutex(sem_master_client_id);
         // TODO Une fois que le master a envoyé la réponse au client, il se bloque
         // sur un sémaphore ; le dernier point permet donc au master de continuer
