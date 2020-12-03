@@ -301,22 +301,21 @@ void loop(master_data *md)
         /*int fds[2] = {md->named_pipe_input, md->named_pipe_output};
         close_pipe(fds);*/
         
-        printf("Avant le mutex master\n");
-        take_mutex(md->mutex_client_master_id);
-        printf("Apres le mutex master\n");
-        int ret1 = close(md->named_pipe_input);
+        if(cont)
+        {
+            //printf("Avant le mutex master\n");
+            take_mutex(md->mutex_client_master_id);
+            //printf("Apres le mutex master\n");
 
-        sell_mutex(md->mutex_client_master_id);
+            ret = close(md->named_pipe_input);
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes input\n");
 
-        int ret2 = close(md->named_pipe_output);
+            sell_mutex(md->mutex_client_master_id);
 
-        // int what;
+            ret = close(md->named_pipe_output);
 
-        // md->named_pipe_input = open(PIPE_MASTER_INPUT, 00, "0660");
-        // read(md->named_pipe_input, &what, sizeof(int));
-        // printf("Hey buddy c'est moi Chiantos le chiant %d\n", what);
-        CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes\n");
-        
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes output\n");
+        }        
     }
 }
 
