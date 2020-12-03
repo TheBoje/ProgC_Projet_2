@@ -52,7 +52,11 @@ void close_worker(worker_data *wd)
 {
     printf("Worker [%d] closing\n", wd->worker_prime_number);
 }
-// check nombre premier
+
+bool isPrime(worker_data *wd)
+{
+    return false; // TODO This
+}
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -103,7 +107,12 @@ void loop(worker_data *wd)
         }
         else
         {
-            /* code */
+            // if (isPrime(wd))
+            // {
+            //     int toWrite = IS_PRIME;
+            //     ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
+            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
+            // }
         }
     }
     // boucle infinie :
