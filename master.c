@@ -1,8 +1,4 @@
-#define HAVE_CONFIG_H
-
-#if defined HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -322,6 +318,9 @@ int main(int argc, char *argv[])
 
     // - création du premier worker
     //      -> init premier worker
+    create_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
+    init_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
+    create_worker(md.unnamed_pipe_output[WRITING], md.unnamed_pipe_inputs[READING]);
 
     // boucle infinie
     loop(&md);
