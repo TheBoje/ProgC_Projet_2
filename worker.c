@@ -23,12 +23,21 @@
 // - Tube anonyme self -> master
 // - Nombre cible (N)
 // - Nombre premier dont il a la charge (P)
+typedef struct worker_data
+{
+    int unnamed_pipe_previous;
+    int unnamed_pipe_next;
+    int unnamed_pipe_master;
+    int worker_prime_number;
+    int input_number;
+} worker_data;
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/
 
-static void usage(const char *exeName, const char *message)
+static void
+usage(const char *exeName, const char *message)
 {
     fprintf(stderr, "usage : %s <n> <fdIn> <fdToMaster>\n", exeName);
     fprintf(stderr, "   <n> : nombre premier géré par le worker\n");
