@@ -107,11 +107,18 @@ void loop(worker_data *wd)
         }
         else
         {
+            // TODO Ecrire au prochain pas au MASTER idiot
             // if (isPrime(wd))
             // {
             //     int toWrite = IS_PRIME;
-            //     ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
+            //     ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing result to master\n");
+            // }
+            // else if (!isPrime(wd))
+            // {
+            //     int toWrite = IS_NOT_PRIME;
+            //     ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+            //     CHECK_RETURN(ret == RET_ERROR, "worker - failed writing result to master\n");
             // }
         }
     }
