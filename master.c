@@ -219,8 +219,6 @@ void stop(master_data *md)
     wait(NULL);
     printf("Fin des workers\n");
 
-    
-
     int confirmation = CONFIRMATION_STOP;
     int ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
@@ -279,10 +277,11 @@ void loop(master_data *md)
 
         case ORDER_HIGHEST_PRIME:
         {
+            printf("AZeqsdqz\n");
             int highest = get_highest_prime(md);
+            printf("Highest [%d]\n", highest);
             ret = write(md->named_pipe_output, &highest, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
-
             break;
         }
 

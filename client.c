@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
 {
     int number = 0;
     int order = parseArgs(argc, argv, &number);
-    printf("%d\n", order); // pour éviter le warning
 
     /* =======================================================
     == order peut valoir 5 valeurs (cf. master_client.h) :  ==
@@ -177,7 +176,7 @@ int main(int argc, char *argv[])
     if (order == ORDER_COMPUTE_PRIME_LOCAL)
     {
         bool res = compute_prime_local(number);
-        printf("Number : [%d] | result : [%s]\n", number, res ? "true" : "false");
+        printf("Number : [%d] | Result : [%s]\n", number, res ? "true" : "false");
     }
     else
     {
@@ -209,7 +208,7 @@ int main(int argc, char *argv[])
             bool result_read;
             ret = read(fd[READING], &result_read, sizeof(bool));
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
-            printf("Order : [%d] | Result : [%s]\n", order, result_read ? "true" : "false");
+            printf("Order : [%d] | Number : [%d] | Result : [%s]\n", order, number, result_read ? "true" : "false");
         }
         else
         {
