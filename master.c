@@ -230,11 +230,11 @@ void order_compute_prime(master_data *md)
 {
     int n, ret;
     ret = read(md->named_pipe_input, &n, sizeof(int));
-    CHECK_RETURN(ret == RET_ERROR, "loop - failed reading n\n");
+    CHECK_RETURN(ret == RET_ERROR, "loop - failed to read n\n");
 
     bool isPrime = compute_prime(n, md);
     ret = write(md->named_pipe_output, &isPrime, sizeof(bool));
-    CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
+    CHECK_RETURN(ret == RET_ERROR, "loop - failed to write to client\n");
 }
 
 // Attennd l'ordre du client et traite l'information
@@ -253,7 +253,7 @@ void loop(master_data *md)
         // Si on est créé c'est qu'on est un nombre premier
         // Envoyer au master un message positif pour dire
         // que le nombre testé est bien premier
-        CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
+        CHECK_RETURN(ret == RET_ERROR, "loop - failed to read order\n");
 
         switch (order)
         {
@@ -270,7 +270,7 @@ void loop(master_data *md)
         {
             int howManyCalc = get_primes_numbers_calculated(md);
             ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed to write to client \n");
 
             break;
         }
@@ -279,13 +279,13 @@ void loop(master_data *md)
         {
             int highest = get_highest_prime(md);
             ret = write(md->named_pipe_output, &highest, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed to write to client\n");
             break;
         }
 
         default:
         {
-            TRACE("Order failure\n");
+            TRACE("master - loop - wrong order from client\n");
             exit(EXIT_FAILURE);
             break;
         }
@@ -296,11 +296,11 @@ void loop(master_data *md)
         if (cont)
         {
             ret = close(md->named_pipe_input);
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes input\n");
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed to close named pipes input\n");
 
             ret = close(md->named_pipe_output);
 
-            CHECK_RETURN(ret == RET_ERROR, "loop - failed closing named pipes output\n");
+            CHECK_RETURN(ret == RET_ERROR, "loop - failed to close named pipes output\n");
         }
         sell_mutex(md->mutex_client_master_id);
     }
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     create_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
     create_worker(md.unnamed_pipe_output[READING], md.unnamed_pipe_inputs[WRITING]);
     init_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
-    printf("Master initiated successfully\n");
+    printf("Master initialised successfully\n");
     // boucle infinie
     loop(&md);
 

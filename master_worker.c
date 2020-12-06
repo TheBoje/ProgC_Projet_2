@@ -40,10 +40,10 @@ void create_pipes_master(int *input, int *output)
 void init_pipes_master(int input[], int output[])
 {
     int ret = close(input[WRITING]);
-    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening input pipe\n");
+    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed to open input pipe\n");
 
     ret = close(output[READING]);
-    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening output pipe\n");
+    CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed to open output pipe\n");
 }
 
 // Clone le master et substitue le worker au master cloné
@@ -53,16 +53,16 @@ void create_worker(int workerIn, int workerOut)
     int ret1 = sprintf(n1, "%d", workerIn);
     int ret2 = sprintf(n2, "%d", workerOut);
     int ret3 = sprintf(prime, "%d", FIRST_PRIME_NUMBER);
-    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR || ret3 == RET_ERROR, "create_worker - failed convert int to char *\n");
+    CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR || ret3 == RET_ERROR, "create_worker - failed to convert int to char *\n");
     char *args[] = {"./worker", prime, n1, n2, NULL};
 
     int resFork = fork();
-    CHECK_RETURN(resFork == RET_ERROR, "create_worker - failed fork master\n");
+    CHECK_RETURN(resFork == RET_ERROR, "create_worker - failed to fork master\n");
 
     if (resFork == 0)
     {
         int ret = execv("./worker", args);
-        CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
+        CHECK_RETURN(ret == RET_ERROR, "create_worker - failed to exec worker\n");
     }
 }
 
@@ -70,8 +70,8 @@ void create_worker(int workerIn, int workerOut)
 void close_pipes_master(int input[], int output[])
 {
     int ret = close(input[READING]);
-    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed closing input pipe\n");
+    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed to close input pipe\n");
 
     ret = close(output[WRITING]);
-    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed closing output pipe\n");
+    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed to close output pipe\n");
 }

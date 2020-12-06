@@ -24,7 +24,7 @@ void take_mutex(int sem_id)
 {
     struct sembuf p = {0, -1, 0};
     int res = semop(sem_id, &p, 1);
-    CHECK_RETURN(res == RET_ERROR, "master-client - Error take mutex\n");
+    CHECK_RETURN(res == RET_ERROR, "master-client - failed to take mutex\n");
 }
 
 // vendre mutex
@@ -32,13 +32,13 @@ void sell_mutex(int sem_id)
 {
     struct sembuf v = {0, 1, 0};
     int res = semop(sem_id, &v, 1);
-    CHECK_RETURN(res == RET_ERROR, "master-client - Error sell mutex\n");
+    CHECK_RETURN(res == RET_ERROR, "master-client - failed to sell mutex\n");
 }
 
 // ouvrir les tubes nommés
 void open_pipe(int side, int res[])
 {
-    myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "Wrong side input");
+    myassert(side != SIDE_MASTER || side != SIDE_CLIENT, "master-client - wrong side input");
     if (side == SIDE_MASTER)
     {
         res[READING] = open(PIPE_MASTER_INPUT, O_RDONLY, "0660");
@@ -53,21 +53,21 @@ void open_pipe(int side, int res[])
     {
         exit(EXIT_FAILURE);
     }
-    CHECK_RETURN(res[READING] == RET_ERROR || res[WRITING] == RET_ERROR, "master-client - Error open pipe\n");
+    CHECK_RETURN(res[READING] == RET_ERROR || res[WRITING] == RET_ERROR, "master-client - failed to open pipe\n");
 }
 
 // fermer les tubes nommés
 void close_pipe(int *fd)
 {
     int res = close(fd[READING]);
-    CHECK_RETURN(res == RET_ERROR, "master-client - Error close pipe\n");
+    CHECK_RETURN(res == RET_ERROR, "master-client - failed to close pipe\n");
     res = close(fd[WRITING]);
-    CHECK_RETURN(res == RET_ERROR, "master-client - Error close pipe\n");
+    CHECK_RETURN(res == RET_ERROR, "master-client - failed to close pipe\n");
 }
 
 // Destruction des tubes nommés
 void destroy_pipe(char *pipe_name)
 {
     int res = unlink(pipe_name);
-    CHECK_RETURN(res == RET_ERROR, "master-client - Error destroy pipe\n");
+    CHECK_RETURN(res == RET_ERROR, "master-client - failed to destroy pipe\n");
 }

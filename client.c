@@ -209,11 +209,10 @@ int main(int argc, char *argv[])
         int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
         int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, 0);
 
-        // TODO IS THIS CORRECT ?
         take_mutex(sem_clients_id);
         take_mutex(sem_master_client_id);
-
         // Ouverture des tubes nommés avec le master
+
         int fd[2];
         open_pipe(SIDE_CLIENT, fd);
 

@@ -50,7 +50,7 @@ void init_worker_structure(worker_data *wd, int worker_prime_number, int unnamed
 }
 
 // La fermeture d'un worker comprend:
-// Fermeture des tubes annonymes
+// Fermeture des tubes anonymes
 // Si le worker est le dernier de la chaine,
 // Il envoie le message de succès au master.
 void close_worker(worker_data *wd)
@@ -61,7 +61,7 @@ void close_worker(worker_data *wd)
     {
         int toWrite = STOP_SUCCESS;
         int ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-        CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop success to master\n");
+        CHECK_RETURN(ret == RET_ERROR, "worker - failed to write stop success to master\n");
         close(wd->unnamed_pipe_master);
     }
 }
@@ -117,7 +117,7 @@ void loop(worker_data *wd)
         // jusqu'à rećevoir une nouvelle tache
         int read_number;
         int ret = read(wd->unnamed_pipe_previous, &read_number, sizeof(int));
-        CHECK_RETURN(ret == RET_ERROR, "worker - reading order failed\n");
+        CHECK_RETURN(ret == RET_ERROR, "worker - failed to read order from previous worker (or master)\n");
 
         // Le résultat de la lecture est soit:
         // - l'ordre d'arret "ORDRE_ARRET" qui arrete le worker et lance l'arret du suivant
@@ -134,7 +134,7 @@ void loop(worker_data *wd)
             {
                 int toWrite = ORDRE_ARRET;
                 ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop order to next worker\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write stop order to next worker\n");
             }
             close_worker(wd);
             cont = false;
@@ -150,23 +150,23 @@ void loop(worker_data *wd)
             // Lecture du nombre précédent
             int read_number;
             int ret = read(wd->unnamed_pipe_previous, &read_number, sizeof(int));
-            CHECK_RETURN(ret == RET_ERROR, "worker - reading howmany count failed\n");
+            CHECK_RETURN(ret == RET_ERROR, "worker - failed to read howmany from previous worker (or master)\n");
             if (wd->hasNext)
             {
                 // Écriture au worker suivant l'ordre et le nombre
                 int toWrite = HOWMANY;
                 ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing order to next worker\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write order to next worker\n");
                 toWrite = read_number + 1;
                 ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write howmany to next worker\n");
             }
             else
             {
                 // Écriture au master le compte total de worker
                 int toWrite = read_number + 1;
                 ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to master\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write howmany to master\n");
             }
         }
         // Pour déterminer le plus grand nombre premier calculer, il suffie de demander
@@ -182,14 +182,14 @@ void loop(worker_data *wd)
                 // Écriture au master du nombre premier dont il est à la charge
                 int toWrite = HIGHEST;
                 ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write order to next worker\n");
             }
             // Cas du worker lambda
             else
             {
                 // Écriture de l'ordre au worker suivant
                 ret = write(wd->unnamed_pipe_master, &wd->worker_prime_number, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany result to master\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write highest result to master\n");
             }
         }
         // Cas du calcul du nombre premier
@@ -204,7 +204,7 @@ void loop(worker_data *wd)
             {
                 int toWrite = IS_PRIME;
                 ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write result to master\n");
             }
             // Dans le cas ou le test de primalité pour le nombre du worker par rapport à l'input
             // montre que le nombre input ne peut pas être premier (parce qu'il possède le nombre
@@ -213,7 +213,7 @@ void loop(worker_data *wd)
             {
                 int toWrite = IS_NOT_PRIME;
                 ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed to write result to master\n");
             }
             // Si le test de primalité est passé, alors on passe le nombre a tester
             // au worker suivant.
@@ -226,21 +226,21 @@ void loop(worker_data *wd)
                 if (wd->hasNext)
                 {
                     ret = write(wd->unnamed_pipe_next, &wd->input_number, sizeof(int));
-                    CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to next worker\n");
+                    CHECK_RETURN(ret == RET_ERROR, "worker - failed to write to next worker\n");
                 }
                 // Cas ou le worker n'a pas de suivant
                 // On fork le worker actuel.
-                // Il faut aussi créer un tube annonyme entre ce worker et le résultant
+                // Il faut aussi créer un tube anonyme entre ce worker et le résultant
                 // du fork.
                 else
                 {
                     int fds[2];
                     pipe(fds);
                     int resFork = fork();
-                    CHECK_RETURN(resFork == RET_ERROR, "worker - failed fork to next worker\n");
+                    CHECK_RETURN(resFork == RET_ERROR, "worker - failed fork for next worker\n");
                     if (resFork == 0) // worker suivant
                     {
-                        // Mise à jour des tubes annonymes entre les deux workers
+                        // Mise à jour des tubes anonymes entre les deux workers
                         wd->worker_prime_number = wd->input_number;
                         wd->hasNext = false;
                         close(fds[WRITING]);
@@ -249,11 +249,11 @@ void loop(worker_data *wd)
                         printf("Worker [%d] created\n", wd->worker_prime_number);
                         int toWrite = IS_PRIME;
                         ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
-                        CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
+                        CHECK_RETURN(ret == RET_ERROR, "worker - failed to write to master\n");
                     }
                     else
                     {
-                        // Mise à jour des tubes annonymes avec le worker suivant que
+                        // Mise à jour des tubes anonymes avec le worker suivant que
                         // l'on vient de créer
                         close(fds[READING]);
                         wd->hasNext = true;
@@ -271,7 +271,7 @@ void loop(worker_data *wd)
 
 int main(int argc, char *argv[])
 {
-    // Initialisation des donńees du premier worker
+    // Initialisation des donńées du premier worker
     worker_data wd;
     parseArgs(argc, argv, &wd);
 
