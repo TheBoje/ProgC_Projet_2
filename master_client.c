@@ -1,5 +1,5 @@
 /************************************************************************
- * Projet Num 2
+ * Projet Numéro 2
  * Programmation avancée en C
  *
  * Auteurs: Vincent Commin & Louis Leenart
