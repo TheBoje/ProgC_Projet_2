@@ -20,17 +20,6 @@
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
-
-// on peut ici définir une structure stockant tout ce dont le master
-// a besoin
-
-// Liste
-// - Mutex client section critique
-// - Mutex client - master
-// - Tube nommé lecture client
-// - Tube nommé écriture client
-// - Tube anonyme lecture worker
-// - Tube anonyme écriture worker
 typedef struct master_data
 {
     int mutex_clients_id;
@@ -40,6 +29,7 @@ typedef struct master_data
     int unnamed_pipe_output[2];
     int unnamed_pipe_inputs[2];
 } master_data;
+
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/
@@ -72,6 +62,7 @@ void init_sem(int *sem_client_id, int *sem_client_master_id)
     *sem_client_master_id = sem2;
 }
 
+// Initialise les pipes entre le master et le client
 void init_named_pipes()
 {
     int ret1 = mkfifo(PIPE_MASTER_INPUT, 0641);
@@ -80,6 +71,7 @@ void init_named_pipes()
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "init_pipes - named pipes doesn't created\n");
 }
 
+// Initialise les pites entre le master et les workers
 void init_workers_pipes(int unnamed_pipe_input[], int unnamed_pipe_output[])
 {
     int ret1 = close(unnamed_pipe_input[WRITING]);
@@ -109,15 +101,14 @@ master_data init_master_structure()
     return md;
 }
 
-// Compute prime - ORDER_COMPUTE_PRIME (N)
+// Envois n - 2 nombres aux workers pour calculer les nombres premiers
 bool compute_prime(int n, master_data *md)
 {
     int ret, read_result;
 
+    // On envois les nombres de 2 à n - 1
     for (int i = 2; i < n; i++)
     {
-        // -> envoie les nombres de 0 à n-1 au premier worker via le tube anonyme output
-        // -> on traite les sorties des workers via le tube anonyme input
         int toWrite = i;
         ret = write(md->unnamed_pipe_output[WRITING], &toWrite, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "master - failed write to worker\n");
@@ -126,18 +117,19 @@ bool compute_prime(int n, master_data *md)
         CHECK_RETURN(ret == RET_ERROR, "master - failed read from worker\n");
     }
 
-    // -> envois du nombre n
+    // envois du nombre n
     ret = write(md->unnamed_pipe_output[WRITING], &n, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "compute_prime - writing n failed\n");
-    // -> on récupère la sortie des worker via le tube anonyme input
+    
+    // on récupère la sortie des worker (Si le nombre est premier ou non)
     int isPrime;
     ret = read(md->unnamed_pipe_inputs[READING], &isPrime, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "compute_prime - reading prime value failed\n");
-    // -> n est premier - oui ou non
+
     return isPrime == IS_PRIME;
 }
 
-// How many prime - ORDER_HOW_MANY_PRIME
+// Retourne le nombre de nombres premiers on été calculés en tout
 int get_primes_numbers_calculated(master_data *md)
 {
     int howMany = HOWMANY;
@@ -154,7 +146,7 @@ int get_primes_numbers_calculated(master_data *md)
     return nb;
 }
 
-// Return ORDER_HIGHEST_PRIME
+// Retourne le plus grand nombre premier calculé
 int get_highest_prime(master_data *md)
 {
     int highest = HIGHEST;
@@ -167,6 +159,7 @@ int get_highest_prime(master_data *md)
     return highest;
 }
 
+// Détruit les sémaphores
 void destroy_structure_sems(master_data *md)
 {
     int ret1 = semctl(md->mutex_client_master_id, 0, IPC_RMID);
@@ -175,6 +168,7 @@ void destroy_structure_sems(master_data *md)
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "destroy_structure_sems - failed destroy mutex\n");
 }
 
+// Détruit les sémaphores et les pipes entre le client et le master
 void destroy_structure_pipes_sems(master_data *md)
 {
     int ret1 = close(md->named_pipe_input);
@@ -188,6 +182,7 @@ void destroy_structure_pipes_sems(master_data *md)
     destroy_structure_sems(md);
 }
 
+// Ouvre les pipes entre le master et le client 
 void open_named_pipes_master(master_data *md)
 {
     int fdsNamed[2];
@@ -196,17 +191,15 @@ void open_named_pipes_master(master_data *md)
     md->named_pipe_output = fdsNamed[WRITING];
 }
 
-// Envoie d'accusé de reception - ORDER_STOP TODO
+// Instruction envoyant l'ordre de fin au workers et stoppant le master
 void stop(master_data *md)
 {
-    // -> Lancer l'odre de fin pour les worker*
+    // Lancer l'odre de fin pour les worker
     int val = ORDRE_ARRET;
     int ret = write(md->unnamed_pipe_output[WRITING], &val, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
 
-    // -> attendre la fin des workers
-    // -> envoyer le signal de fin au client
-
+    // Attend le retour de fin des workers
     ret = read(md->unnamed_pipe_inputs[READING], &val, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR || val != STOP_SUCCESS, "stop - write failed or error closing workers\n");
 
@@ -214,10 +207,10 @@ void stop(master_data *md)
 
     close_pipes_master(md->unnamed_pipe_inputs, md->unnamed_pipe_output);
 
+    // Envoie la confirmation de fin au client
     int confirmation = CONFIRMATION_STOP;
     ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
-    // destroy_structure_pipes_sems(md);
     printf("Master closed\n");
 }
 
@@ -225,6 +218,7 @@ void stop(master_data *md)
  * boucle principale de communication avec le client
  ************************************************************************/
 
+// récupère le nombre à étudier et le retour des workers
 void order_compute_prime(master_data *md)
 {
     int n, ret;
@@ -236,6 +230,7 @@ void order_compute_prime(master_data *md)
     CHECK_RETURN(ret == RET_ERROR, "loop - failed writing is prime\n");
 }
 
+// Attennd l'ordre du client et traite l'information
 void loop(master_data *md)
 {
     bool cont = true;
@@ -328,6 +323,3 @@ int main(int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
-
-// N'hésitez pas à faire des fonctions annexes ; si les fonctions main
-// et loop pouvaient être "courtes", ce serait bien
