@@ -16,9 +16,6 @@
 #define ORDER_HIGHEST_PRIME 3
 #define ORDER_COMPUTE_PRIME_LOCAL 4 // ne concerne pas le master
 
-// bref n'hésitez à mettre nombre de fonctions avec des noms explicites
-// pour masquer l'implémentation
-
 #define FILE_KEY "master_client.h"
 #define ID_CLIENTS 1
 #define ID_MASTER_CLIENT 2
@@ -41,10 +38,7 @@ void open_pipe(int side, int res[]);
 // fermer les tubes nommés
 void close_pipe(int *fd);
 
-// NON écriture sur le tube nommé (dans master_client)
-// NON lecture sur le tube nommé (dans master_client)
-
-// Destruction des tubes nommés (dans master_client)
+// Destruction des tubes nommés
 void destroy_pipe(char *pipe_name);
 
 #endif

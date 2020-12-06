@@ -16,12 +16,6 @@
 
 #include "master_client.h"
 #include "master_worker.h"
-// TODO Set me to 0
-
-/************************************************************************
- * Idées
- ************************************************************************/
-// TODO calcul du temps d'execution (time.deltaTime)
 
 /************************************************************************
  * Données persistantes d'un master
@@ -122,17 +116,14 @@ bool compute_prime(int n, master_data *md)
 
     for (int i = 2; i < n; i++)
     {
-        // TODO
-        // -> envois des nombres de 0 à n-1 au premier worker via le tube anonyme output
-        // -> on traite les sorties des workrs via le tube anonyme input
-        printf("Envoi du nombre %d\n", i);
+        // -> envoie les nombres de 0 à n-1 au premier worker via le tube anonyme output
+        // -> on traite les sorties des workers via le tube anonyme input
         int toWrite = i;
         ret = write(md->unnamed_pipe_output[WRITING], &toWrite, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "master - failed write to worker\n");
         read_result = 0;
         ret = read(md->unnamed_pipe_inputs[READING], &read_result, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "master - failed read from worker\n");
-        printf("RESULT WORKER [%d] | [%d]\n", i, read_result);
     }
 
     // -> envois du nombre n
@@ -186,7 +177,6 @@ void destroy_structure_sems(master_data *md)
 
 void destroy_structure_pipes_sems(master_data *md)
 {
-    printf("Destroying pipes\n");
     int ret1 = close(md->named_pipe_input);
     int ret2 = close(md->named_pipe_output);
     CHECK_RETURN(ret1 == RET_ERROR, "destroy_structure_pipes_sems - failed closing named pipes input\n");
@@ -196,8 +186,6 @@ void destroy_structure_pipes_sems(master_data *md)
     destroy_pipe(PIPE_MASTER_OUTPUT);
 
     destroy_structure_sems(md);
-
-    printf("Done destroying\n");
 }
 
 void open_named_pipes_master(master_data *md)
@@ -215,16 +203,14 @@ void stop(master_data *md)
     int val = ORDRE_ARRET;
     int ret = write(md->unnamed_pipe_output[WRITING], &val, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
-    
+
     // -> attendre la fin des workers
     // -> envoyer le signal de fin au client
-    // TODO Delete sémaphores et tubes
-    // TODO attendre la fin des workers
 
     ret = read(md->unnamed_pipe_inputs[READING], &val, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR || val != STOP_SUCCESS, "stop - write failed or error closing workers\n");
 
-    printf("Fin des workers\n");
+    printf("Workers closed\n");
 
     close_pipes_master(md->unnamed_pipe_inputs, md->unnamed_pipe_output);
 
@@ -232,7 +218,7 @@ void stop(master_data *md)
     ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
     // destroy_structure_pipes_sems(md);
-    printf("Fin du master\n");
+    printf("Master closed\n");
 }
 
 /************************************************************************
@@ -256,12 +242,14 @@ void loop(master_data *md)
 
     while (cont)
     {
-        printf("Attente de l'ouverture du pipe\n");
         open_named_pipes_master(md); // Ouverture des pipes en liaison avec les clients (l'ouverture est blocante)
 
         int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
-        printf("Valeur read : %d\n", order);
+        printf("Order [%d]\n", order);
+        // Si on est créé c'est qu'on est un nombre premier
+        // Envoyer au master un message positif pour dire
+        // que le nombre testé est bien premier
         CHECK_RETURN(ret == RET_ERROR, "loop - reading order failed\n");
 
         switch (order)
@@ -286,9 +274,7 @@ void loop(master_data *md)
 
         case ORDER_HIGHEST_PRIME:
         {
-            printf("AZeqsdqz\n");
             int highest = get_highest_prime(md);
-            printf("Highest [%d]\n", highest);
             ret = write(md->named_pipe_output, &highest, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
             break;
@@ -334,7 +320,7 @@ int main(int argc, char *argv[])
     create_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
     create_worker(md.unnamed_pipe_output[READING], md.unnamed_pipe_inputs[WRITING]);
     init_pipes_master(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
-
+    printf("Master initiated successfully\n");
     // boucle infinie
     loop(&md);
 

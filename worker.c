@@ -41,7 +41,6 @@ void init_worker_structure(worker_data *wd, int worker_prime_number, int unnamed
 
 void close_worker(worker_data *wd)
 {
-    printf("Worker [%d] closing\n", wd->worker_prime_number);
     close(wd->unnamed_pipe_previous);
     close(wd->unnamed_pipe_next);
     if (!wd->hasNext)
@@ -92,7 +91,6 @@ void loop(worker_data *wd)
 
     while (cont)
     {
-        printf("Worker [%d] en attente\n", wd->worker_prime_number);
         int read_number;
         int ret = read(wd->unnamed_pipe_previous, &read_number, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "worker - reading order failed\n");
@@ -179,6 +177,7 @@ void loop(worker_data *wd)
                         close(fds[WRITING]);
                         wd->unnamed_pipe_previous = fds[READING];
                         wd->unnamed_pipe_next = INIT_WORKER_NEXT_PIPE;
+                        printf("Worker [%d] created\n", wd->worker_prime_number);
                         int toWrite = IS_PRIME;
                         ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
                         CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
@@ -221,12 +220,7 @@ int main(int argc, char *argv[])
     worker_data wd;
     parseArgs(argc, argv, &wd);
 
-    // Si on est créé c'est qu'on est un nombre premier
-    // Envoyer au master un message positif pour dire
-    // que le nombre testé est bien premier
     loop(&wd);
-
-    // libérer les ressources : fermeture des files descriptors par exemple
 
     return EXIT_SUCCESS;
 }

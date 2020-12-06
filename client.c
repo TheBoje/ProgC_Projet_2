@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
     if (order == ORDER_COMPUTE_PRIME_LOCAL)
     {
         bool res = compute_prime_local(number);
-        printf("Number : [%d] | Result : [%s]\n", number, res ? "true" : "false");
+        printf("Number : [%d] | Is prime : [%s]\n", number, res ? "true" : "false");
     }
     else
     {
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
             bool result_read;
             ret = read(fd[READING], &result_read, sizeof(bool));
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
-            printf("Order : [%d] | Number : [%d] | Result : [%s]\n", order, number, result_read ? "true" : "false");
+            printf("Order : [%d] | Number : [%d] | Is Prime : [%s]\n", order, number, result_read ? "true" : "false");
         }
         else if (order == ORDER_STOP)
         {
@@ -247,8 +247,6 @@ int main(int argc, char *argv[])
         CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe writting\n");
 
         sell_mutex(sem_master_client_id);
-        // TODO Une fois que le master a envoyé la réponse au client, il se bloque
-        // sur un sémaphore ; le dernier point permet donc au master de continuer
     }
     return EXIT_SUCCESS;
 }

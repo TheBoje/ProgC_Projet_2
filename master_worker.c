@@ -23,7 +23,6 @@ void create_pipes_master(int *input, int *output)
 
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "create_pipes_master - pipe not created\n");
 
-    // TODO changer cette merde
     input[READING] = fdsInput[READING];
     input[WRITING] = fdsInput[WRITING];
 
@@ -52,11 +51,10 @@ void create_worker(int workerIn, int workerOut)
     int resFork = fork();
     CHECK_RETURN(resFork == RET_ERROR, "create_worker - failed fork master\n");
 
-    if(resFork == 0)
+    if (resFork == 0)
     {
         int ret = execv("./worker", args);
         CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
-        printf("Worker created\n");
     }
 }
 
