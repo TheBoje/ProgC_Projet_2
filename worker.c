@@ -100,6 +100,24 @@ void loop(worker_data *wd)
             close_worker(wd);
             break;
         }
+        else if (read_number == HOWMANY)
+        {
+            int read_number;
+            int ret = read(wd->unnamed_pipe_previous, &read_number, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "worker - reading howmany count failed\n");
+            if (wd->hasNext)
+            {
+                int toWrite = read_number + 1;
+                ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
+            }
+            else
+            {
+                int toWrite = read_number + 1;
+                ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to master\n");
+            }
+        }
         else
         {
             wd->input_number = read_number;
