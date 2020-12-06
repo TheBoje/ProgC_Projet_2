@@ -118,6 +118,14 @@ void loop(worker_data *wd)
                 CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to master\n");
             }
         }
+        else if (read_number == HIGHEST)
+        {
+            if (!wd->hasNext)
+            {
+                ret = write(wd->unnamed_pipe_next, &wd->worker_prime_number, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
+            }
+        }
         else
         {
             wd->input_number = read_number;
