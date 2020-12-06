@@ -18,9 +18,9 @@
 
 #include "master_worker.h"
 
-// fonctions éventuelles proposées dans le .h
 // intput -> pipe dans lequel le master lit la réponse du worker
 // ouput -> pipe dans lequel le master écrit au worker
+// Créer les pipes dans le master
 void create_pipes_master(int *input, int *output)
 {
     int fdsInput[2], fdsOutput[2];
@@ -36,6 +36,7 @@ void create_pipes_master(int *input, int *output)
     output[WRITING] = fdsOutput[WRITING];
 }
 
+// Initialise les pipes entre le master et le worker
 void init_pipes_master(int input[], int output[])
 {
     int ret = close(input[WRITING]);
@@ -45,9 +46,10 @@ void init_pipes_master(int input[], int output[])
     CHECK_RETURN(ret == RET_ERROR, "init_pipes_master - failed opening output pipe\n");
 }
 
+// Clone le master et substitue le worker au master cloné
 void create_worker(int workerIn, int workerOut)
 {
-    char n1[10], n2[10], prime[10];
+    char n1[10], n2[10], prime[10]; // On initialise des tableaux de caractères pour les arguments du worker
     int ret1 = sprintf(n1, "%d", workerIn);
     int ret2 = sprintf(n2, "%d", workerOut);
     int ret3 = sprintf(prime, "%d", FIRST_PRIME_NUMBER);
@@ -64,6 +66,7 @@ void create_worker(int workerIn, int workerOut)
     }
 }
 
+// Ferme les pipes entre le master et les workers
 void close_pipes_master(int input[], int output[])
 {
     int ret = close(input[READING]);

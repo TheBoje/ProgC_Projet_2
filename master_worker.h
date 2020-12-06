@@ -28,13 +28,11 @@
         TRACE(m);           \
         exit(EXIT_FAILURE); \
     }
-// SIGNATURES
-void create_pipes_master(int *input, int *output);
-// Initialisation des tubes anonymes (dans master_worker)
-void init_pipes_master(int input[], int output[]);
-// Création du premier worker (dans master_worker)
-void create_worker(int workerIn, int workerOut);
-// Ordre de fin du premier worker (dans master_worker)
-void close_pipes_master(int input[], int output[]);
+
+
+void create_pipes_master(int *input, int *output); // Créer les pipes dans le master
+void init_pipes_master(int input[], int output[]); // Initialise les pipes entre le master et le worker
+void create_worker(int workerIn, int workerOut); // Clone le master et substitue le worker au master cloné
+void close_pipes_master(int input[], int output[]); // Ferme les pipes entre le master et les workers
 
 #endif
