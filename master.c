@@ -211,18 +211,25 @@ void open_named_pipes_master(master_data *md)
 // Envoie d'accusé de reception - ORDER_STOP TODO
 void stop(master_data *md)
 {
-    // -> Lancer l'odre de fin pour les worker
+    // -> Lancer l'odre de fin pour les worker*
+    int val = ORDRE_ARRET;
+    int ret = write(md->unnamed_pipe_output, &val, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
+    
     // -> attendre la fin des workers
     // -> envoyer le signal de fin au client
     // TODO Delete sémaphores et tubes
     // TODO attendre la fin des workers
-    wait(NULL);
+
+    ret = read(md->unnamed_pipe_inputs, &val, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "stop - read failed\n");
+
     printf("Fin des workers\n");
 
-    
+    close_pipes_master(md->unnamed_pipe_inputs, md->unnamed_pipe_output);
 
     int confirmation = CONFIRMATION_STOP;
-    int ret = write(md->named_pipe_output, &confirmation, sizeof(int));
+    ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
     // destroy_structure_pipes_sems(md);
     printf("Fin du master\n");

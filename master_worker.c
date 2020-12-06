@@ -60,7 +60,11 @@ void create_worker(int workerIn, int workerOut)
     }
 }
 
-void close_pipes_master()
+void close_pipes_master(int input[], int output[])
 {
-    
+    int ret = close(input[READING]);
+    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed closing input pipe\n");
+
+    ret = close(output[WRITING]);
+    CHECK_RETURN(ret == RET_ERROR, "close_pipes_master - failed closing output pipe\n");
 }

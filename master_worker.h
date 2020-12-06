@@ -27,5 +27,7 @@ void init_pipes_master(int input[], int output[]);
 // Création du premier worker (dans master_worker)
 void create_worker(int workerIn, int workerOut);
 // Ordre de fin du premier worker (dans master_worker)
+void close_pipes_master(int input[], int output[]);
+
 
 #endif
