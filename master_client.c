@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Numéro 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #include "config.h"
 
 #define _XOPEN_SOURCE

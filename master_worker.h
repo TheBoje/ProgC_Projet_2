@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Numéro 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #ifndef MASTER_WORKER_H
 #define MASTER_WORKER_H
 
@@ -29,6 +36,5 @@ void init_pipes_master(int input[], int output[]);
 void create_worker(int workerIn, int workerOut);
 // Ordre de fin du premier worker (dans master_worker)
 void close_pipes_master(int input[], int output[]);
-
 
 #endif
