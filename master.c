@@ -213,7 +213,7 @@ void stop(master_data *md)
 {
     // -> Lancer l'odre de fin pour les worker*
     int val = ORDRE_ARRET;
-    int ret = write(md->unnamed_pipe_output, &val, sizeof(int));
+    int ret = write(md->unnamed_pipe_output[WRITING], &val, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
     
     // -> attendre la fin des workers
@@ -221,8 +221,8 @@ void stop(master_data *md)
     // TODO Delete sémaphores et tubes
     // TODO attendre la fin des workers
 
-    ret = read(md->unnamed_pipe_inputs, &val, sizeof(int));
-    CHECK_RETURN(ret == RET_ERROR, "stop - read failed\n");
+    ret = read(md->unnamed_pipe_inputs[READING], &val, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR || val != STOP_SUCCESS, "stop - write failed or error closing workers\n");
 
     printf("Fin des workers\n");
 
