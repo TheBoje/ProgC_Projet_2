@@ -127,7 +127,7 @@ bool compute_prime(int n, master_data *md)
     // envois du nombre n
     ret = write(md->unnamed_pipe_output[WRITING], &n, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "compute_prime - writing n failed\n");
-    
+
     // on récupère la sortie des worker (Si le nombre est premier ou non)
     int isPrime;
     ret = read(md->unnamed_pipe_inputs[READING], &isPrime, sizeof(int));
@@ -189,7 +189,7 @@ void destroy_structure_pipes_sems(master_data *md)
     destroy_structure_sems(md);
 }
 
-// Ouvre les pipes entre le master et le client 
+// Ouvre les pipes entre le master et le client
 void open_named_pipes_master(master_data *md)
 {
     int fdsNamed[2];
@@ -244,9 +244,9 @@ void loop(master_data *md)
 
     while (cont)
     {
+        printf("Master is waiting for order\n");
         open_named_pipes_master(md); // Ouverture des pipes en liaison avec les clients (l'ouverture est blocante)
 
-        printf("Master is waiting for order\n");
         int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         printf("Order [%d]\n", order);
