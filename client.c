@@ -258,11 +258,12 @@ int main(int argc, char *argv[])
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Result : [%d]\n", order, result_read);
         }
-        // Fin de section critique
-        sell_mutex(sem_master_client_id);
         // Fermeture des pipes avec le master
         ret = close(fd[READING]);
         CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe reading\n");
+
+        // Fin de section critique
+        sell_mutex(sem_master_client_id);
 
         ret = close(fd[WRITING]);
         CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe writting\n");
