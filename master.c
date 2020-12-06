@@ -124,6 +124,8 @@ master_data init_master_structure()
 // Compute prime - ORDER_COMPUTE_PRIME (N)
 bool compute_prime(int n, master_data *md)
 {
+    int ret, read_result;
+
     for (int i = 2; i < n; i++)
     {
         // TODO
@@ -131,18 +133,23 @@ bool compute_prime(int n, master_data *md)
         // -> on traite les sorties des workrs via le tube anonyme input
         printf("Envoi du nombre %d\n", i);
         int toWrite = i;
-        int ret = write(md->unnamed_pipe_output[WRITING], &toWrite, sizeof(int));
+        ret = write(md->unnamed_pipe_output[WRITING], &toWrite, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "master - failed write to worker\n");
-        int read_result = 0;
+        read_result = 0;
         ret = read(md->unnamed_pipe_inputs[READING], &read_result, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "master - failed read from worker\n");
         printf("RESULT WORKER [%d] | [%d]\n", i, read_result);
     }
 
     // -> envois du nombre n
+    ret = write(md->unnamed_pipe_output[WRITING], &n, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "compute_prime - writing n failed\n");
     // -> on récupère la sortie des worker via le tube anonyme input
+    bool isPrime;
+    ret = read(md->unnamed_pipe_inputs[READING], &isPrime, sizeof(bool));
+    CHECK_RETURN(ret == RET_ERROR, "compute_prime - reading prime value failed\n");
     // -> n est premier - oui ou non
-    return true;
+    return isPrime;
 }
 
 // How many prime - ORDER_HOW_MANY_PRIME
