@@ -207,6 +207,14 @@ int main(int argc, char *argv[])
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Number : [%d] | Result : [%s]\n", order, number, result_read ? "true" : "false");
         }
+        else if (order == ORDER_STOP)
+        {
+            int result_read;
+            ret = read(fd[READING], &result_read, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR || result_read != CONFIRMATION_STOP, "Client - Error read from master\n");
+
+            printf("Master and worker(s) stopped successfully\n");
+        }
         else
         {
             int result_read;
@@ -220,8 +228,6 @@ int main(int argc, char *argv[])
 
         //      -> prendre second mutex
         //take_mutex(sem_master_client_id);
-
-        //DEBUG LEFT HERE
 
         //  - sortir de la section critique
         //      -> vendre le mutex

@@ -6,8 +6,7 @@
 //    - des fonctions communes (création tubes, écriture dans un tube,
 //      manipulation de sémaphores, ...)
 
-
-#define CONFIRMATION_STOP 99
+#define CONFIRMATION_STOP -2
 
 // ordres possibles pour le master
 #define ORDER_NONE 0
@@ -29,10 +28,6 @@
 #define PIPE_CLIENT_OUTPUT "pipe_master_input"
 #define SIDE_MASTER 0
 #define SIDE_CLIENT 1
-
-
-
-
 
 // prendre mutex
 void take_mutex(int sem_id);
