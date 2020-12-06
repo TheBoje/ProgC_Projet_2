@@ -163,7 +163,7 @@ int get_primes_numbers_calculated(master_data *md)
     ret = write(md->unnamed_pipe_output[WRITING], &nb, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - writing nb failed\n");
 
-    ret = read(md->named_pipe_input[READING], &nb, sizeof(int));
+    ret = read(md->unnamed_pipe_inputs[READING], &nb, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - reading nb failed\n");
 
     return nb;
