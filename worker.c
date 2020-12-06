@@ -51,7 +51,6 @@ void close_worker(worker_data *wd)
         CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop success to master\n");
         close(wd->unnamed_pipe_master);
     }
-    free(wd);
 }
 
 bool isPrime(worker_data *wd)

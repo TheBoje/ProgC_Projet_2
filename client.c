@@ -96,17 +96,14 @@ void *threadPrime(void *arg)
 {
     ThreadData *data = (ThreadData *)arg;
 
-    bool *res = malloc(sizeof(bool));
-    *res = true;
     if (data->target % data->valeur == 0)
     {
-        *res = false;
+        *(data->isPrime) = false;
     }
     else
     {
-        *res = true;
+        *(data->isPrime) = true;
     }
-    *(((ThreadData *)arg)->isPrime) = *res;
     return NULL;
 }
 
