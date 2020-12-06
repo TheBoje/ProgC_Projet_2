@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Num 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #include "config.h"
 
 #include <stdio.h>
@@ -244,6 +251,7 @@ void loop(master_data *md)
     {
         open_named_pipes_master(md); // Ouverture des pipes en liaison avec les clients (l'ouverture est blocante)
 
+        printf("Master is waiting for order\n");
         int order;
         int ret = read(md->named_pipe_input, &order, sizeof(int));
         printf("Order [%d]\n", order);

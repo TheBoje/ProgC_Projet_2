@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Num 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #include "config.h"
 
 #define _POSIX_C_SOURCE 200809L
@@ -84,7 +91,8 @@ static int parseArgs(int argc, char *argv[], int *number)
 /************************************************************************
  * Fonctions secondaires
  ************************************************************************/
-
+// Définition de la structure de donnée transmise à chaque thread
+// Note : *isPrime est le pointeur vers la case que le thread doit remplir
 typedef struct
 {
     int valeur;
@@ -92,6 +100,9 @@ typedef struct
     bool *isPrime;
 } ThreadData;
 
+// Fonction lancée pour chaque thread.
+// Chaque thread doit remplir la case *isPrime dans le tableau contenu dans compute_prime_local
+// Écrit false si le nombre n'est pas premier, et true s'il l'est.
 void *threadPrime(void *arg)
 {
     ThreadData *data = (ThreadData *)arg;
@@ -107,6 +118,13 @@ void *threadPrime(void *arg)
     return NULL;
 }
 
+// Calcul d'un nombre premier en local (appel via ./client local <nb>)
+// Lance sqrt(nb) + 1 threads pour vérifier si au moins 1 des sqrt(nb) + 1
+// premier nombre est un diviseur de nb.
+// Chaque thread est lancé via threadPrime.
+// Note: le nombre d'appel de threads est limité par la machine.
+// Voir cat /proc/sys/kernel/threads-max pour le nombre de Threads max pour votre machine.
+// Note2: le nombre est aussi limité par MAX_INT étant donné la structure de données actuelle.
 bool compute_prime_local(int input)
 {
     fprintf(stdout, "Computing prime local of number [%d]\n", input);
@@ -115,28 +133,31 @@ bool compute_prime_local(int input)
     bool isPrimeTab[size];
     ThreadData datas[size];
     pthread_t threads[size];
-
+    // Initialisation de la structure de données
     for (int i = 0; i < size; i++)
     {
         isPrimeTab[i] = true;
         datas[i].valeur = i;
         datas[i].target = input;
         datas[i].isPrime = &isPrimeTab[i];
-        *datas[i].isPrime = true;
+        *datas[i].isPrime = true; // On remplie le tableau de booléen par true
     }
-
+    // Lancement des threads
     for (int i = 2; i < size; i++)
     {
         int ret = pthread_create(&(threads[i]), NULL, threadPrime, &datas[i]);
         CHECK_RETURN(ret == RET_ERROR, "Client local compute - Error threads create\n");
     }
-
+    // Attente de la fin de tous les threads
     for (int i = 2; i < size; i++)
     {
         int ret = pthread_join(threads[i], NULL);
         CHECK_RETURN(ret == RET_ERROR, "Client local compute - Error threads join\n");
     }
-
+    // Parcours du tableau (initialisé à true et modifié par chaque thread lancé)
+    // Si le nombre du thread est un diviseur du nombre cible, alors le thread
+    // remplace son booléen par false. Si au moins une des cases est à false,
+    // alors le nombre n'est pas premier.
     bool res = true;
     for (int i = 0; i < size; i++)
     {
@@ -168,8 +189,9 @@ int main(int argc, char *argv[])
     ==      - ORDER_HIGHEST_PRIME                           ==
     ======================================================= */
 
-    // si c'est ORDER_COMPUTE_PRIME_LOCAL
-    //    alors c'est un code complètement à part multi-thread
+    // ORDER_COMPUTE_PRIME_LOCAL
+    // alors c'est un code complètement à part multi-thread
+    // Voir fonction bool compute_prime_local(int)
     if (order == ORDER_COMPUTE_PRIME_LOCAL)
     {
         bool res = compute_prime_local(number);
@@ -180,73 +202,72 @@ int main(int argc, char *argv[])
         //  - entrer en section critique : (prendre le mutex dans master_client)
         //      . pour empêcher que 2 clients communiquent simultanément
         //      . le mutex est déjà créé par le master
+
+        // Initialisation des sémaphores
+        // sem_clients_id empeche 2 clients de se connecter au master en même temps
+        // sem_master_client_id permet au master d'attendre le client et inversement
         int sem_clients_id = semget(ftok(FILE_KEY, ID_CLIENTS), 1, 0);
         int sem_master_client_id = semget(ftok(FILE_KEY, ID_MASTER_CLIENT), 1, 0);
 
-        take_mutex(sem_master_client_id);
+        // TODO IS THIS CORRECT ?
         take_mutex(sem_clients_id);
+        take_mutex(sem_master_client_id);
 
-        //  - ouvrir les tubes nommés (ils sont déjà créés par le master) dans master_client
-        //    . TODO les ouvertures sont bloquantes, il faut s'assurer que
-        //      le master ouvre les tubes dans le même ordre
+        // Ouverture des tubes nommés avec le master
         int fd[2];
         open_pipe(SIDE_CLIENT, fd);
 
-        //  - envoyer l'ordre et les données éventuelles au master
+        // Envoie de l'ordre au master.
+        // Les ordre sont représentés par des <int>
+        // Voir master_client.h
         int ret = write(fd[WRITING], &order, sizeof(int));
         CHECK_RETURN(ret == RET_ERROR, "Client - Error write order to master\n");
 
-        // Dans le cas ou on demande de calculer si le nombre est premier
-        // On envoie dans un second temps le nombre premier à vérifier
-
+        // Cas de l'ordre de demande de calcul du nombre <number>
+        // On envoie alors au master le nombre a vérifier vie le tube.
         if (order == ORDER_COMPUTE_PRIME)
         {
-            write(fd[1], &number, sizeof(int));
+            // Envoie du nombre au master
+            ret = write(fd[1], &number, sizeof(int));
+            CHECK_RETURN(ret == RET_ERROR, "Client - Error write number to master\n");
+
+            // Lecture du résultat
+            // La lecture est bloquante, donc le client attends ici le résultat de master
             bool result_read;
             ret = read(fd[READING], &result_read, sizeof(bool));
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Number : [%d] | Is Prime : [%s]\n", order, number, result_read ? "true" : "false");
         }
+        // Cas le l'ordre de demande d'arrêt au master (et aux workers)
         else if (order == ORDER_STOP)
         {
+            // Attente de la confirmation d'arrêt du master (et donc indirectement aussi des workers)
             int result_read;
             ret = read(fd[READING], &result_read, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR || result_read != CONFIRMATION_STOP, "Client - Error read from master\n");
 
             printf("Master and worker(s) stopped successfully\n");
         }
+        // Autres cas : Highest et Howmany
+        // Le client attend la réponse du master
         else
         {
+            // Lecture bloquante, le client attend ici jusqu'à réponse du master
             int result_read;
             ret = read(fd[READING], &result_read, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR, "Client - Error read from master\n");
             printf("Order : [%d] | Result : [%d]\n", order, result_read);
         }
-
-        //  - attendre la réponse sur le second tube
-        //      -> lire dans le pipe
-
-        //      -> prendre second mutex
-        //take_mutex(sem_master_client_id);
-
-        //  - sortir de la section critique
-        //      -> vendre le mutex
-
-        sell_mutex(sem_clients_id);
-        //  - libérer les ressources (fermeture des tubes, ...)
-        //      -> fermeture des tubes
-        //close_pipe(fd);
-
+        // Fin de section critique
+        sell_mutex(sem_master_client_id);
+        // Fermeture des pipes avec le master
         ret = close(fd[READING]);
         CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe reading\n");
 
-        //  - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
-        //      -> vendre second mutex ORDER_STOP
-
         ret = close(fd[WRITING]);
         CHECK_RETURN(ret == RET_ERROR, "Client - Error closing pipe writting\n");
-
-        sell_mutex(sem_master_client_id);
+        // Débloquage du master
+        sell_mutex(sem_clients_id);
     }
     return EXIT_SUCCESS;
 }

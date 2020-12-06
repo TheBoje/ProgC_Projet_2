@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Num 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -5,11 +12,11 @@
 #define VERBOSE
 
 #ifdef VERBOSE
-    #define TRACE(x) fprintf(stderr, (x));
-    #define TRACE2(x,p1) fprintf(stderr, (x), (p1));
+#define TRACE(x) fprintf(stderr, (x));
+#define TRACE2(x, p1) fprintf(stderr, (x), (p1));
 #else
-    #define TRACE(x)
-    #define TRACE2(x,p1)
+#define TRACE(x)
+#define TRACE2(x, p1)
 #endif
 
 #define WRITING 1

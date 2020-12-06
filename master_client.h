@@ -1,3 +1,10 @@
+/************************************************************************
+ * Projet Num 2
+ * Programmation avancée en C
+ *
+ * Auteurs: Vincent Commin & Louis Leenart
+ ************************************************************************/
+
 #ifndef CLIENT_CRIBLE
 #define CLIENT_CRIBLE
 
