@@ -153,15 +153,26 @@ bool compute_prime(int n, master_data *md)
 }
 
 // How many prime - ORDER_HOW_MANY_PRIME
-int get_primes_numbers_calculated(master_data md)
+int get_primes_numbers_calculated(master_data *md)
 {
-    return md.primes_number_calculated;
+    int howMany = HOWMANY;
+    int ret = write(md->unnamed_pipe_output, &howMany, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - writing order failed\n");
+
+    int nb = 0;
+    ret = write(md->unnamed_pipe_output, &nb, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - writing nb failed\n");
+
+    ret = read(md->named_pipe_input, &nb, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - reading nb failed\n");
+
+    return nb;
 }
 
 // Return ORDER_HIGHEST_PRIME
-int get_highest_prime(master_data md)
+int get_highest_prime(master_data *md)
 {
-    return md.highest_prime;
+    return md->highest_prime;
 }
 
 void destroy_structure_sems(master_data *md)
@@ -206,6 +217,9 @@ void stop(master_data *md)
     // TODO attendre la fin des workers
     wait(NULL);
     printf("Fin des workers\n");
+
+    
+
     int confirmation = CONFIRMATION_STOP;
     int ret = write(md->named_pipe_output, &confirmation, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "stop - write failed\n");
@@ -216,33 +230,6 @@ void stop(master_data *md)
 /************************************************************************
  * boucle principale de communication avec le client
  ************************************************************************/
-
-// TODO Mettre sémaphore ici
-// - si ORDER_STOP
-//       . envoyer ordre de fin au premier worker et attendre sa fin (dans master_worker)
-//       . envoyer un accusé de réception au client
-// - si ORDER_COMPUTE_PRIME
-//       . récupérer le nombre N à tester provenant du client (dans master_client)
-//       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-//             il faut connaître le plus grand nombre (M) déjà envoyé aux workers
-//             on leur envoie tous les nombres entre M+1 et N-1 (SQRT(N) ?)
-//             note : chaque envoie déclenche une réponse des workers
-//       . envoyer N dans le pipeline
-//       . récupérer la réponse
-//       . la transmettre au client
-// - si ORDER_HOW_MANY_PRIME
-//       . transmettre la réponse au client
-// - si ORDER_HIGHEST_PRIME
-//       . transmettre la réponse au client
-// - fermer les tubes nommés (dans master_client)
-// - attendre ordre du client avant de continuer (sémaphore : précédence
-//      -> lire pipe client (dans master_client)
-//          --> sémaphore
-// - revenir en début de boucle
-//
-// il est important d'ouvrir et fermer les tubes nommés à chaque itération
-// voyez-vous pourquoi ?
-// TODO Répondre : Sinon 2 clients peuvent écrire et lire en même temps
 
 void order_compute_prime(master_data *md)
 {
@@ -282,7 +269,7 @@ void loop(master_data *md)
 
         case ORDER_HOW_MANY_PRIME:
         {
-            int howManyCalc = get_primes_numbers_calculated(*md);
+            int howManyCalc = get_primes_numbers_calculated(md);
             ret = write(md->named_pipe_output, &howManyCalc, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR, "loop - failed writing how many prime\n");
 
@@ -291,7 +278,7 @@ void loop(master_data *md)
 
         case ORDER_HIGHEST_PRIME:
         {
-            int highest = get_highest_prime(*md);
+            int highest = get_highest_prime(md);
             ret = write(md->named_pipe_output, &highest, sizeof(int));
             CHECK_RETURN(ret == RET_ERROR, "loop - failed writing highest prime\n");
 

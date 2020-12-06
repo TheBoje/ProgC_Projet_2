@@ -24,11 +24,11 @@ void create_pipes_master(int *input, int *output)
     CHECK_RETURN(ret1 == RET_ERROR || ret2 == RET_ERROR, "create_pipes_master - pipe not created\n");
 
     // TODO changer cette merde
-    input[0] = fdsInput[0];
-    input[1] = fdsInput[1];
+    input[READING] = fdsInput[READING];
+    input[WRITING] = fdsInput[WRITING];
 
-    output[0] = fdsOutput[0];
-    output[1] = fdsOutput[1];
+    output[READING] = fdsOutput[READING];
+    output[WRITING] = fdsOutput[WRITING];
 }
 
 void init_pipes_master(int input[], int output[])
@@ -58,4 +58,9 @@ void create_worker(int workerIn, int workerOut)
         CHECK_RETURN(ret == RET_ERROR, "create_worker - failed exec worker\n");
         printf("Worker created\n");
     }
+}
+
+void close_pipes_master()
+{
+    
 }
