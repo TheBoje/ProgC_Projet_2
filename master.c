@@ -17,7 +17,6 @@
 #include "master_client.h"
 #include "master_worker.h"
 // TODO Set me to 0
-#define INIT_MASTER_VALUE 0
 
 /************************************************************************
  * Idées
@@ -46,8 +45,6 @@ typedef struct master_data
     int named_pipe_input;
     int unnamed_pipe_output[2];
     int unnamed_pipe_inputs[2];
-    int primes_number_calculated;
-    int highest_prime;
 } master_data;
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -115,9 +112,6 @@ master_data init_master_structure()
 
     init_workers_pipes(md.unnamed_pipe_inputs, md.unnamed_pipe_output);
 
-    md.primes_number_calculated = INIT_MASTER_VALUE;
-    md.highest_prime = INIT_MASTER_VALUE;
-
     return md;
 }
 
@@ -172,7 +166,14 @@ int get_primes_numbers_calculated(master_data *md)
 // Return ORDER_HIGHEST_PRIME
 int get_highest_prime(master_data *md)
 {
-    return md->highest_prime;
+    int highest = HIGHEST;
+    int ret = write(md->unnamed_pipe_output[WRITING], &highest, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "get_highest_prime - writing order failed\n");
+
+    ret = read(md->unnamed_pipe_inputs[READING], &highest, sizeof(int));
+    CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - reading nb failed\n");
+
+    return highest;
 }
 
 void destroy_structure_sems(master_data *md)
