@@ -156,14 +156,14 @@ bool compute_prime(int n, master_data *md)
 int get_primes_numbers_calculated(master_data *md)
 {
     int howMany = HOWMANY;
-    int ret = write(md->unnamed_pipe_output, &howMany, sizeof(int));
+    int ret = write(md->unnamed_pipe_output[WRITING], &howMany, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - writing order failed\n");
 
     int nb = 0;
-    ret = write(md->unnamed_pipe_output, &nb, sizeof(int));
+    ret = write(md->unnamed_pipe_output[WRITING], &nb, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - writing nb failed\n");
 
-    ret = read(md->named_pipe_input, &nb, sizeof(int));
+    ret = read(md->named_pipe_input[READING], &nb, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "get_primes_numbers_calculated - reading nb failed\n");
 
     return nb;
