@@ -125,22 +125,27 @@ void loop(worker_data *wd)
                 }
                 else
                 {
+                    int fds[2];
+                    pipe(fds);
                     int resFork = fork();
                     CHECK_RETURN(resFork == RET_ERROR, "worker - failed fork to next worker\n");
                     if (resFork == 0) // next worker
                     {
-                        wd->worker_prime_number += 1; // TODO ????
+                        wd->worker_prime_number = wd->input_number;
                         printf("worker [%d] forked\n", wd->worker_prime_number);
-                        // TODO :
-                        /*
-                            - Changer les pipes correctement
-                            - ????
-                            - Profit
-                        */
+                        wd->hasNext = false;
+                        close(fds[WRITING]);
+                        wd->unnamed_pipe_previous = fds[READING];
+                        wd->unnamed_pipe_next = INIT_WORKER_NEXT_PIPE;
+                        int toWrite = IS_PRIME;
+                        ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+                        CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
                     }
                     else
                     {
+                        close(fds[READING]);
                         wd->hasNext = true;
+                        wd->unnamed_pipe_next = fds[WRITING];
                     }
                 }
             }

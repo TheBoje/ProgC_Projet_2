@@ -145,11 +145,11 @@ bool compute_prime(int n, master_data *md)
     ret = write(md->unnamed_pipe_output[WRITING], &n, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "compute_prime - writing n failed\n");
     // -> on récupère la sortie des worker via le tube anonyme input
-    bool isPrime;
-    ret = read(md->unnamed_pipe_inputs[READING], &isPrime, sizeof(bool));
+    int isPrime;
+    ret = read(md->unnamed_pipe_inputs[READING], &isPrime, sizeof(int));
     CHECK_RETURN(ret == RET_ERROR, "compute_prime - reading prime value failed\n");
     // -> n est premier - oui ou non
-    return isPrime;
+    return isPrime == IS_PRIME;
 }
 
 // How many prime - ORDER_HOW_MANY_PRIME
