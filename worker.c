@@ -41,7 +41,17 @@ void init_worker_structure(worker_data *wd, int worker_prime_number, int unnamed
 
 void close_worker(worker_data *wd)
 {
-    printf("Worker [%d] closing\n", wd->worker_prime_number); // TODO This
+    printf("Worker [%d] closing\n", wd->worker_prime_number);
+    close(wd->unnamed_pipe_previous);
+    close(wd->unnamed_pipe_next);
+    if (!wd->hasNext)
+    {
+        int toWrite = STOP_SUCCESS;
+        int ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
+        CHECK_RETURN(ret == RET_ERROR, "worker - failed writing stop success to master\n");
+        close(wd->unnamed_pipe_master);
+    }
+    free(wd);
 }
 
 bool isPrime(worker_data *wd)
@@ -107,7 +117,10 @@ void loop(worker_data *wd)
             CHECK_RETURN(ret == RET_ERROR, "worker - reading howmany count failed\n");
             if (wd->hasNext)
             {
-                int toWrite = read_number + 1;
+                int toWrite = HOWMANY;
+                ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing order to next worker\n");
+                toWrite = read_number + 1;
                 ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
                 CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
             }
@@ -120,10 +133,16 @@ void loop(worker_data *wd)
         }
         else if (read_number == HIGHEST)
         {
-            if (!wd->hasNext)
+            if (wd->hasNext)
             {
-                ret = write(wd->unnamed_pipe_next, &wd->worker_prime_number, sizeof(int));
+                int toWrite = HIGHEST;
+                ret = write(wd->unnamed_pipe_next, &toWrite, sizeof(int));
                 CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany to next worker\n");
+            }
+            else
+            {
+                ret = write(wd->unnamed_pipe_master, &wd->worker_prime_number, sizeof(int));
+                CHECK_RETURN(ret == RET_ERROR, "worker - failed writing howmany result to master\n");
             }
         }
         else
@@ -131,7 +150,6 @@ void loop(worker_data *wd)
             wd->input_number = read_number;
             if (wd->input_number == wd->worker_prime_number)
             {
-                printf("Worker [%d] is last; writting to master\n", wd->worker_prime_number);
                 int toWrite = IS_PRIME;
                 ret = write(wd->unnamed_pipe_master, &toWrite, sizeof(int));
                 CHECK_RETURN(ret == RET_ERROR, "worker - failed writing to master\n");
@@ -158,7 +176,6 @@ void loop(worker_data *wd)
                     if (resFork == 0) // next worker
                     {
                         wd->worker_prime_number = wd->input_number;
-                        printf("worker [%d] forked\n", wd->worker_prime_number);
                         wd->hasNext = false;
                         close(fds[WRITING]);
                         wd->unnamed_pipe_previous = fds[READING];
